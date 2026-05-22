@@ -1,13 +1,14 @@
 package com.aditya.novabuild.controller;
 
 
+import com.aditya.novabuild.dto.project.ProjectRequest;
+import com.aditya.novabuild.dto.project.ProjectResponse;
 import com.aditya.novabuild.dto.project.ProjectSummaryResponse;
 import com.aditya.novabuild.service.ProjectService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -18,8 +19,34 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @GetMapping
-    public ResponseEntity<List<ProjectSummaryResponse>> getProjects(){
+    public ResponseEntity<List<ProjectSummaryResponse>> getMyProjects(){
         Long userId=1L;
-        return ResponseEntity.ok(projectService.getAllProjects(userId));
+        return ResponseEntity.ok(projectService.getUserProjects(userId));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProjectResponse> getProjectById(@PathVariable Long id) {
+        Long userId = 1L;
+        return ResponseEntity.ok(projectService.getUserProjectById(id, userId));
+    }
+
+    @PostMapping
+    public ResponseEntity<ProjectResponse> createProject(@RequestBody ProjectRequest projectRequest) {
+        Long userId = 1L;
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(projectRequest, userId));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id, @RequestBody ProjectRequest projectRequest) {
+        Long userId = 1L;
+        return ResponseEntity.ok(projectService.updateProject(id, projectRequest, userId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
+        Long userId = 1L;
+        projectService.softDelete(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
 }
