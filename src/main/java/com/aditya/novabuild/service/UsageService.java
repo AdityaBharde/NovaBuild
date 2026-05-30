@@ -6,7 +6,7 @@ import com.aditya.novabuild.dto.subscription.UsageTodayResponse;
 import org.springframework.stereotype.Service;
 
 
-@Service
+
 public interface UsageService {
      UsageTodayResponse getTodayUsageOfUser(Long userId);
 

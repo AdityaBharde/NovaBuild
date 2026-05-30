@@ -1,18 +1,21 @@
 package com.aditya.novabuild.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
-
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,8 +25,13 @@ public class User {
     String email;
     String passwordHash;
     String avatarUrl;
+
+    @CreationTimestamp
     Instant createdAt;
+
+    @UpdateTimestamp
     Instant updatedAt;
+
     Instant deletedAt;
 
 }

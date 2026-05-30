@@ -2,6 +2,7 @@ package com.aditya.novabuild.controller;
 
 import com.aditya.novabuild.dto.member.InviteMemberRequest;
 import com.aditya.novabuild.dto.member.MemberResponse;
+import com.aditya.novabuild.dto.member.UpdateMemberRoleRequest;
 import com.aditya.novabuild.model.ProjectMember;
 import com.aditya.novabuild.service.ProjectMemberService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class ProjectMemberController {
     private final ProjectMemberService projectMemberService;
 
     @GetMapping
-    public ResponseEntity<List<ProjectMember>> getProjectMembers(@PathVariable Long projectId) {
+    public ResponseEntity<List<MemberResponse>> getProjectMembers(@PathVariable Long projectId) {
         Long userId = 1L;
         return ResponseEntity.ok(projectMemberService.getProjectMembers(projectId, userId));
     }
@@ -39,14 +40,14 @@ public class ProjectMemberController {
     public ResponseEntity<MemberResponse> updateMemberRole(
             @PathVariable Long projectId,
             @PathVariable Long memberId,
-            @RequestBody InviteMemberRequest request
+            @RequestBody UpdateMemberRoleRequest request
     ) {
         Long userId = 1L;
         return ResponseEntity.ok(projectMemberService.updateMemberRole(projectId, memberId, request, userId));
     }
 
     @DeleteMapping("/{memberId}")
-    public ResponseEntity<MemberResponse> updateMemberRole(
+    public ResponseEntity<MemberResponse> deleteMemberRole(
             @PathVariable Long projectId,
             @PathVariable Long memberId
     ) {

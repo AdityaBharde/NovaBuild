@@ -15,6 +15,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Table(name = "projects")
 public class Project {
 
     @Id
@@ -23,6 +24,9 @@ public class Project {
 
     @Column(nullable = false)
     String name;
+
+    @ManyToOne @JoinColumn(name = "owner_id", nullable = false)
+    User owner;
 
     Boolean isPublic = false;
 

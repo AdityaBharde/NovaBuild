@@ -6,7 +6,7 @@ import com.aditya.novabuild.dto.subscription.PortalResponse;
 import com.aditya.novabuild.dto.subscription.SubscriptionResponse;
 import org.springframework.stereotype.Service;
 
-@Service
+
 public interface SubscriptionService {
 
     CheckoutResponse createCheckoutSessionUrl(CheckoutRequest request, Long userId);

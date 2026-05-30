@@ -4,7 +4,6 @@ package com.aditya.novabuild.controller;
 import com.aditya.novabuild.dto.project.FileContentResponse;
 import com.aditya.novabuild.dto.project.FileNode;
 import com.aditya.novabuild.service.FileService;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
