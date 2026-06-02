@@ -4,8 +4,6 @@ package com.aditya.novabuild.service;
 import com.aditya.novabuild.dto.member.InviteMemberRequest;
 import com.aditya.novabuild.dto.member.MemberResponse;
 import com.aditya.novabuild.dto.member.UpdateMemberRoleRequest;
-import com.aditya.novabuild.model.ProjectMember;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -17,5 +15,5 @@ public interface ProjectMemberService {
 
     MemberResponse updateMemberRole(Long projectId, Long memberId, UpdateMemberRoleRequest request, Long userId);
 
-    MemberResponse deleteProjectMember(Long projectId, Long memberId, Long userId);
+    void removeProjectMember(Long projectId, Long memberId, Long userId);
 }

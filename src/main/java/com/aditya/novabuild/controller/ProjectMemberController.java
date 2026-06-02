@@ -3,7 +3,6 @@ package com.aditya.novabuild.controller;
 import com.aditya.novabuild.dto.member.InviteMemberRequest;
 import com.aditya.novabuild.dto.member.MemberResponse;
 import com.aditya.novabuild.dto.member.UpdateMemberRoleRequest;
-import com.aditya.novabuild.model.ProjectMember;
 import com.aditya.novabuild.service.ProjectMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -47,12 +46,13 @@ public class ProjectMemberController {
     }
 
     @DeleteMapping("/{memberId}")
-    public ResponseEntity<MemberResponse> deleteMemberRole(
+    public ResponseEntity<Void> removeMemberRole(
             @PathVariable Long projectId,
             @PathVariable Long memberId
     ) {
         Long userId = 1L;
-        return ResponseEntity.ok(projectMemberService.deleteProjectMember(projectId, memberId, userId));
+        projectMemberService.removeProjectMember(projectId, memberId, userId);
+        return ResponseEntity.noContent().build();
     }
 
 
