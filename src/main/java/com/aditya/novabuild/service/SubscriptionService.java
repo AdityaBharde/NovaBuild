@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 public interface SubscriptionService {
 
-    CheckoutResponse createCheckoutSessionUrl(CheckoutRequest request, Long userId);
+    CheckoutResponse createCheckoutSessionUrl(CheckoutRequest request);
 
     PortalResponse openCustomerPortal(Long userId);
 

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
-    public CheckoutResponse createCheckoutSessionUrl(CheckoutRequest request, Long userId) {
+    public CheckoutResponse createCheckoutSessionUrl(CheckoutRequest request) {
         return null;
     }
 

@@ -4,6 +4,7 @@ package com.aditya.novabuild.controller;
 import com.aditya.novabuild.dto.subscription.*;
 import com.aditya.novabuild.service.PlanService;
 import com.aditya.novabuild.service.SubscriptionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,15 +28,15 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscriptionService.getCurrentSubscription(userId));
     }
 
-    @PostMapping("/api/stripe/checkout")
+    @PostMapping("/api/payments/checkout")
     public ResponseEntity<CheckoutResponse> createCheckoutResponse(
-            @RequestBody CheckoutRequest request
+            @Valid @RequestBody CheckoutRequest request
     ) {
         Long userId = 1L;
-        return ResponseEntity.ok(subscriptionService.createCheckoutSessionUrl(request, userId));
+        return ResponseEntity.ok(subscriptionService.createCheckoutSessionUrl(request));
     }
 
-    @PostMapping("/api/stripe/portal")
+    @PostMapping("/api/payments/portal")
     public ResponseEntity<PortalResponse> openCustomerPortal() {
         Long userId = 1L;
         return ResponseEntity.ok(subscriptionService.openCustomerPortal(userId));

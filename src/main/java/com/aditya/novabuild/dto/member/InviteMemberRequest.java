@@ -2,9 +2,14 @@ package com.aditya.novabuild.dto.member;
 
 
 import com.aditya.novabuild.enums.ProjectRole;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record InviteMemberRequest(
-        String email,
-        ProjectRole role
+        @Email
+        @NotBlank
+        String username,
+        @NotNull ProjectRole role
 ) {
 }

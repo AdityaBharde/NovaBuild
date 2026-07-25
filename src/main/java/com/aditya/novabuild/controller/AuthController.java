@@ -4,6 +4,7 @@ package com.aditya.novabuild.controller;
 import com.aditya.novabuild.dto.auth.*;
 import com.aditya.novabuild.service.AuthService;
 import com.aditya.novabuild.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,19 +17,19 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signup( @RequestBody SignUpRequest signUpRequest) {
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignUpRequest signUpRequest) {
         return ResponseEntity.ok(authService.signUp(signUpRequest));
     }
 
     @PostMapping("login")
-    public ResponseEntity<AuthResponse> login( @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile() {
         Long userId = 1L;
-        return ResponseEntity.ok(userService.getProfile());
+        return ResponseEntity.ok(userService.getProfile(userId));
     }
 
 }
