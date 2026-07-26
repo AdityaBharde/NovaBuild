@@ -2,8 +2,10 @@ package com.aditya.novabuild.controller;
 
 
 import com.aditya.novabuild.dto.subscription.*;
+import com.aditya.novabuild.service.PaymentProcesser;
 import com.aditya.novabuild.service.PlanService;
 import com.aditya.novabuild.service.SubscriptionService;
+import com.aditya.novabuild.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import java.util.List;
 public class SubscriptionController {
     private final PlanService planService;
     private final SubscriptionService subscriptionService;
+    private final PaymentProcesser paymentProcesser;
 
     @GetMapping("/api/plans")
     public ResponseEntity<List<PlanResponse>> getAllPlans() {
@@ -33,12 +36,12 @@ public class SubscriptionController {
             @Valid @RequestBody CheckoutRequest request
     ) {
         Long userId = 1L;
-        return ResponseEntity.ok(subscriptionService.createCheckoutSessionUrl(request));
+        return ResponseEntity.ok(paymentProcesser.createCheckoutSessionUrl(request));
     }
 
     @PostMapping("/api/payments/portal")
     public ResponseEntity<PortalResponse> openCustomerPortal() {
         Long userId = 1L;
-        return ResponseEntity.ok(subscriptionService.openCustomerPortal(userId));
+        return ResponseEntity.ok(paymentProcesser.openCustomerPortal(userId));
     }
 }
