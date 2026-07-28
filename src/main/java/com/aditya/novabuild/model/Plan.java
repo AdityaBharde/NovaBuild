@@ -1,10 +1,7 @@
 package com.aditya.novabuild.model;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +16,8 @@ public class Plan {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String name;
+
+    @Column(unique = true)
     String stripePriceId;
     Integer maxProjects;
     Integer maxTokensPerDay;
