@@ -23,7 +23,6 @@ public class Subscription {
     SubscriptionStatus status;
 
     String stripeSubscriptionId;
-    String stripeCustomerId;
 
     Instant currentPeriodStart;
     Instant currentPeriodEnd;

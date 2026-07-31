@@ -20,6 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @Table(name = "users")
+
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,6 +37,9 @@ public class User implements UserDetails {
     Instant updatedAt;
 
     Instant deletedAt;
+
+    @Column(unique = true)
+    String stripeCustomerId;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
