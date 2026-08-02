@@ -5,14 +5,17 @@ import com.aditya.novabuild.dto.subscription.CheckoutResponse;
 import com.aditya.novabuild.dto.subscription.PortalResponse;
 import com.aditya.novabuild.exception.ResourceNotFoundException;
 import com.aditya.novabuild.model.Plan;
-import com.aditya.novabuild.model.Subscription;
 import com.aditya.novabuild.model.User;
 import com.aditya.novabuild.repository.PlanRepository;
 import com.aditya.novabuild.repository.SubscriptionRepository;
 import com.aditya.novabuild.repository.UserRepository;
 import com.aditya.novabuild.security.AuthUtil;
 import com.aditya.novabuild.service.PaymentProcesser;
+import com.aditya.novabuild.service.SubscriptionService;
+import com.stripe.exception.StripeException;
+import com.stripe.model.Invoice;
 import com.stripe.model.StripeObject;
+import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Map;
 
 
@@ -30,8 +34,9 @@ public class StripePaymentProcessor implements PaymentProcesser {
 
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
-    private final SubscriptionRepository subscriptionRepository;
     private final AuthUtil authUtil;
+    private final SubscriptionService subscriptionService;
+    private final SubscriptionRepository subscriptionRepository;
 
     @Value("${client.url}")
     private String frontendUrl;
@@ -74,7 +79,7 @@ public class StripePaymentProcessor implements PaymentProcesser {
 
     @Override
     public PortalResponse openCustomerPortal(Long userId) {
-        Subscription subscription = subscriptionRepository.findByUserId(userId)
+       com.aditya.novabuild.model.Subscription subscription = subscriptionRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("No subscription found for user"));
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"+userId));
         if (user.getStripeCustomerId() == null) {
@@ -96,7 +101,90 @@ public class StripePaymentProcessor implements PaymentProcesser {
 
     @Override
     public void handleWebhookEvent(String type, StripeObject stripeObject, Map<String, String> metadata) {
-        log.info("type");
+        log.debug("Handling stripe event: {}", type);
+
+        switch (type) {
+            case "checkout.session.completed" -> handleCheckoutSessionCompleted((Session) stripeObject, metadata);
+            case "customer.subscription.updated" -> handleCustomerSubscriptionUpdated((Subscription) stripeObject);
+            case "customer.subscription.deleted" -> handleCustomerSubscriptionDeleted((Subscription) stripeObject);
+            case "invoice.paid" -> handleInvoicePaid((Invoice) stripeObject);
+            case "invoice.payment_failed" -> handleInvoicePaymentFailed((Invoice) stripeObject);
+            default -> log.debug("Ignoring the event: {}", type);
+        }
     }
+
+    private void handleInvoicePaymentFailed(Invoice invoice) {
+        String subId = extractSubscriptionId(invoice);
+        if(subId == null) return;
+
+        subscriptionService.markSubscriptionPastDue(subId);
+    }
+
+    private void handleInvoicePaid(Invoice invoice) {
+        String subId = extractSubscriptionId(invoice);
+        if(subId == null) return;
+
+        try {
+            Subscription subscription = Subscription.retrieve(subId); //sdk calling the Stripe server
+            var item = subscription.getItems().getData().get(0);
+
+            Instant periodStart = toInstant(item.getCurrentPeriodStart());
+            Instant periodEnd = toInstant(item.getCurrentPeriodEnd());
+
+            subscriptionService.renewSubscriptionPeriod(
+                    subId,
+                    periodStart,
+                    periodEnd
+            );
+
+        } catch (StripeException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private void handleCustomerSubscriptionDeleted(Subscription stripeObject) {
+        
+    }
+
+    private void handleCustomerSubscriptionUpdated(Subscription stripeObject) {
+        
+    }
+
+    private void handleCheckoutSessionCompleted(Session session, Map<String, String> metadata) {
+        if(session == null) {
+            log.error("session object was null");
+            return;
+        }
+        Long userId = Long.parseLong(metadata.get("user_id"));
+        Long planId = Long.parseLong(metadata.get("plan_id"));
+
+        String subscriptionId = session.getSubscription();
+        String customerId = session.getCustomer();
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        if(user.getStripeCustomerId() == null) {
+            user.setStripeCustomerId(customerId);
+            userRepository.save(user);
+        }
+
+        subscriptionService.activateSubscription(userId, planId, subscriptionId, customerId);
+    }
+
+
+    private String extractSubscriptionId(Invoice invoice) {
+        var parent = invoice.getParent();
+        if (parent == null) return null;
+
+        var subDetails = parent.getSubscriptionDetails();
+        if (subDetails == null) return null;
+
+        return subDetails.getSubscription();
+    }
+
+    private Instant toInstant(Long epoch) {
+        return epoch != null ? Instant.ofEpochSecond(epoch) : null;
+    }
+
 }
 
