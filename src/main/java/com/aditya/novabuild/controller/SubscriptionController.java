@@ -2,10 +2,9 @@ package com.aditya.novabuild.controller;
 
 
 import com.aditya.novabuild.dto.subscription.*;
-import com.aditya.novabuild.service.PaymentProcesser;
+import com.aditya.novabuild.service.PaymentProcessor;
 import com.aditya.novabuild.service.PlanService;
 import com.aditya.novabuild.service.SubscriptionService;
-import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
@@ -30,7 +29,7 @@ import java.util.Map;
 public class SubscriptionController {
     private final PlanService planService;
     private final SubscriptionService subscriptionService;
-    private final PaymentProcesser paymentProcesser;
+    private final PaymentProcessor paymentProcesser;
 
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
@@ -42,22 +41,19 @@ public class SubscriptionController {
 
     @GetMapping("/api/me/subscription")
     public ResponseEntity<SubscriptionResponse> getMySubscription() {
-        Long userId = 1L;
-        return ResponseEntity.ok(subscriptionService.getCurrentSubscription(userId));
+        return ResponseEntity.ok(subscriptionService.getCurrentSubscription());
     }
 
     @PostMapping("/api/payments/checkout")
     public ResponseEntity<CheckoutResponse> createCheckoutResponse(
             @Valid @RequestBody CheckoutRequest request
     ) {
-        Long userId = 1L;
         return ResponseEntity.ok(paymentProcesser.createCheckoutSessionUrl(request));
     }
 
     @PostMapping("/api/payments/portal")
     public ResponseEntity<PortalResponse> openCustomerPortal() {
-        Long userId = 1L;
-        return ResponseEntity.ok(paymentProcesser.openCustomerPortal(userId));
+        return ResponseEntity.ok(paymentProcesser.openCustomerPortal());
     }
 
     @PostMapping("/webhooks/payment")
