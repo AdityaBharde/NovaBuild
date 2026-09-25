@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.aditya</groupId>
-    <artifactId>config-serivce</artifactId>
+    <artifactId>config-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>config-serivce</name>
-    <description>config-serivce</description>
+    <name>config-service</name>
+    <description>config-service</description>
     <url/>
     <licenses>
         <license/>
