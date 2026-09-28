@@ -1,4 +1,4 @@
-package com.aditya.novabuild.common.security;
+package com.aditya.commonlib.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
