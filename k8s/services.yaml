@@ -1,0 +1,282 @@
+# Discovery Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-service
+  namespace: novabuild
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery-service
+  template:
+    metadata:
+      labels:
+        app: discovery-service
+    spec:
+      containers:
+        - name: discovery-service
+          image: novabuild/discovery-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8761
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-service
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8761
+      targetPort: 8761
+  selector:
+    app: discovery-service
+---
+# Config Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-service
+  namespace: novabuild
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-service
+  template:
+    metadata:
+      labels:
+        app: config-service
+    spec:
+      containers:
+        - name: config-service
+          image: novabuild/config-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-service
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8888
+      targetPort: 8888
+  selector:
+    app: config-service
+---
+# API Gateway
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: novabuild
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: novabuild/api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: api-gateway
+---
+# Account Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: novabuild
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: account-service
+  template:
+    metadata:
+      labels:
+        app: account-service
+    spec:
+      containers:
+        - name: account-service
+          image: novabuild/account-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: novabuild-configmap
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/novabuild_account_db"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgrespassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8081
+      targetPort: 8081
+  selector:
+    app: account-service
+---
+# Project Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: project-service
+  namespace: novabuild
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: project-service
+  template:
+    metadata:
+      labels:
+        app: project-service
+    spec:
+      containers:
+        - name: project-service
+          image: novabuild/project-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: novabuild-configmap
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/novabuild_project_db"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgrespassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: project-service
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app: project-service
+---
+# Intelligent Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intelligent-service
+  namespace: novabuild
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: intelligent-service
+  template:
+    metadata:
+      labels:
+        app: intelligent-service
+    spec:
+      containers:
+        - name: intelligent-service
+          image: novabuild/intelligent-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: novabuild-configmap
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/novabuild_intelligent_db"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgrespassword"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: novabuild-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intelligent-service
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8083
+      targetPort: 8083
+  selector:
+    app: intelligent-service
+---
+# Sandbox Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-service
+  namespace: novabuild
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sandbox-service
+  template:
+    metadata:
+      labels:
+        app: sandbox-service
+    spec:
+      containers:
+        - name: sandbox-service
+          image: novabuild/sandbox-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: novabuild-configmap
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/novabuild_sandbox_db"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgrespassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-service
+  namespace: novabuild
+spec:
+  ports:
+    - port: 8085
+      targetPort: 8085
+  selector:
+    app: sandbox-service

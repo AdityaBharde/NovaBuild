@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      corsConfigurations:
+        '[/**]':
+          allowedOrigins: "*"
+          allowedMethods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+            - PATCH
+          allowedHeaders: "*"
+      routes:
+        - id: account-service
+          uri: ${ACCOUNT_SERVICE_URL:http://account-service:8081}
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/users/**, /api/v1/subscriptions/**
+
+        - id: project-service
+          uri: ${PROJECT_SERVICE_URL:http://project-service:8082}
+          predicates:
+            - Path=/api/v1/projects/**, /api/v1/files/**
+
+        - id: intelligent-service
+          uri: ${INTELLIGENT_SERVICE_URL:http://intelligent-service:8083}
+          predicates:
+            - Path=/api/v1/chat/**, /api/v1/ai/**
+
+        - id: sandbox-service
+          uri: ${SANDBOX_SERVICE_URL:http://sandbox-service:8085}
+          predicates:
+            - Path=/api/v1/sandbox/**
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://discovery-service:8761/eureka/}
+
+jwt:
+  secret: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html

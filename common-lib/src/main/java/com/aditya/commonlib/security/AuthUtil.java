@@ -17,7 +17,7 @@ import java.util.Date;
 @Component
 public class AuthUtil {
 
-    @Value("${jwt.secret-key}")
+    @Value("${jwt.secret:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}")
     private String jwtSecretKey;
 
     private SecretKey getSecretKey() {
@@ -48,12 +48,11 @@ public class AuthUtil {
         return new JwtUserPrincipal(userId, name, username, null, new ArrayList<>());
     }
 
-    public Long getCurrentUserId() {
+    public static Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if(authentication == null || !(authentication.getPrincipal() instanceof JwtUserPrincipal userPrincipal)) {
-            throw new AuthenticationCredentialsNotFoundException("No JWT Found");
+        if (authentication == null || !(authentication.getPrincipal() instanceof JwtUserPrincipal userPrincipal)) {
+            return null;
         }
         return userPrincipal.userId();
     }
-
 }
