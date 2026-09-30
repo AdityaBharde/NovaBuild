@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/novabuild_account_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -16,6 +16,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  ai:
+    openai:
+      base-url: ${AI_BASE_URL:https://openrouter.ai/api}
+      api-key: ${AI_API_KEY:}
+  config:
+    import: optional:configserver:http://localhost:8888
 
 eureka:
   client:
@@ -23,5 +30,12 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
 
 jwt:
-  secret: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
-  expiration: 86400000
+  secret: ${JWT_SECRET:}
+
+stripe:
+  secret: ${STRIPE_API_KEY:}
+  webhook:
+    secret: ${Stripe_Webhook_Secret:}
+
+client:
+  url: http://localhost:8080/

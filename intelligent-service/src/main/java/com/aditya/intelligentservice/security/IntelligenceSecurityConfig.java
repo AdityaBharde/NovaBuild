@@ -2,7 +2,7 @@ package com.aditya.intelligentservice.security;
 
 import com.aditya.commonlib.security.JwtAuthFilter;
 import jakarta.servlet.DispatcherType;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -15,13 +15,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
-@RequiredArgsConstructor
 @EnableMethodSecurity
 @EnableWebSecurity
 public class IntelligenceSecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final HandlerExceptionResolver handlerExceptionResolver;
+
+    public IntelligenceSecurityConfig(JwtAuthFilter jwtAuthFilter,
+                                      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.handlerExceptionResolver = handlerExceptionResolver;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
