@@ -1,25 +1,30 @@
 package com.aditya.accountservice.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "plans")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Plan {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
-    @Column(nullable = false, unique = true)
-    private String name; // FREE, PRO, ENTERPRISE
+    String name;
 
-    private double priceMonthly;
-    private int monthlyTokenLimit;
-    private int maxProjects;
+    @Column(unique = true)
+    String stripePriceId;
+
+    Integer maxProjects;
+    Integer maxTokensPerDay;
+    Integer maxPreviews;
+    Boolean unlimitedAi;
+
+    Boolean active;
 }

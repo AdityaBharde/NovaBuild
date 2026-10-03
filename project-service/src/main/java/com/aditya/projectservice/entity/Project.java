@@ -2,36 +2,42 @@ package com.aditya.projectservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "projects")
+import java.time.Instant;
+
 @Getter
 @Setter
-@NoArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Entity
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
+@Table(name = "projects",
+        indexes = {
+                @Index(name = "idx_projects_updated_at_desc", columnList = "updated_at DESC, deleted_at"),
+                @Index(name = "idx_projects_deleted_at_updated_at_desc", columnList = "deleted_at, updated_at DESC"),
+                @Index(name = "idx_project_deleted_at", columnList = "deleted_at")
+        }
+)
 public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    // The user who owns this project (from account-service)
-    @Column(nullable = false)
-    private Long userId;
+    Long id;
 
     @Column(nullable = false)
-    private String name;
+    String name;
 
-    private String description;
+    Boolean isPublic = false;
 
     @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
+    Instant createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    Instant updatedAt;
+
+    Instant deletedAt; //soft delete
 }

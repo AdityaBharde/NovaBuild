@@ -1,24 +1,37 @@
 package com.aditya.accountservice.controller;
 
+import com.aditya.accountservice.dto.auth.AuthResponse;
+import com.aditya.accountservice.dto.auth.LoginRequest;
+import com.aditya.accountservice.dto.auth.SignupRequest;
 import com.aditya.accountservice.service.AuthService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@RequestMapping("/auth")
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AuthController {
 
-    private final AuthService authService;
+    AuthService authService;
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthService.AuthResponse> register(@RequestBody AuthService.RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+    @PostMapping("/signup")
+    public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request) {
+        return ResponseEntity.ok(authService.signup(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthService.AuthResponse> login(@RequestBody AuthService.LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+//    @GetMapping("/me")
+//    public ResponseEntity<UserProfileResponse> getProfile() {
+//        Long userId = 1L;
+//        return ResponseEntity.ok(userService.getProfile(userId));
+//    } TODO
+
 }

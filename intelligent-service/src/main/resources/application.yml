@@ -18,7 +18,7 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   ai:
     openai:
-      api-key: ${AI_API_KEY:}
+      api-key: ${AI_API_KEY}
       
 eureka:
   client:

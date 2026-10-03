@@ -2,36 +2,38 @@ package com.aditya.projectservice.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "project_files")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProjectFile {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "version_id", nullable = false)
-    private ProjectVersion projectVersion;
+    @JoinColumn(name = "project_id", nullable = false)
+    Project project;
 
-    // e.g., "src/components/Button.jsx" or "package.json"
     @Column(nullable = false)
-    private String filePath;
+    String path;
 
-    // The actual code content. Using TEXT or LONGTEXT for large files
-    @Lob
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    String minioObjectKey;
 
-    // e.g., "javascript", "css", "json" (helpful for syntax highlighting in Monaco Editor)
-    private String language;
+    @CreationTimestamp
+    Instant createdAt;
+
+    @UpdateTimestamp
+    Instant updatedAt;
 }

@@ -2,39 +2,41 @@ package com.aditya.accountservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "users")
-@Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Table(name = "users")
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    String username;
+    String password;
+    String name;
 
-    @Column(nullable = false)
-    private String password;
-
-    private String name;
-
-    @Builder.Default
-    private String role = "ROLE_USER";
-
-    private String stripeCustomerId;
+    @Column(unique = true)
+    String stripeCustomerId;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    Instant createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    Instant updatedAt;
+
+    Instant deletedAt; //soft delete
 }
