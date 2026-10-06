@@ -30,12 +30,16 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
 
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET}
 
 stripe:
-  secret: ${STRIPE_API_KEY:}
+  api:
+    secret: ${STRIPE_API_KEY}
   webhook:
-    secret: ${Stripe_Webhook_Secret:}
+    secret: ${Stripe_Webhook_Secret}
 
+app:
+  frontend:
+    url: http://novabuild.local
 client:
   url: http://localhost:8080/

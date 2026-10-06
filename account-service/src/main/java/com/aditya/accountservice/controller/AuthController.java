@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AuthController {
 
@@ -20,6 +20,11 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request) {
+        return ResponseEntity.ok(authService.signup(request));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@RequestBody SignupRequest request) {
         return ResponseEntity.ok(authService.signup(request));
     }
 
@@ -33,5 +38,4 @@ public class AuthController {
 //        Long userId = 1L;
 //        return ResponseEntity.ok(userService.getProfile(userId));
 //    } TODO
-
 }

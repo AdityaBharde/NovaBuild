@@ -5,7 +5,6 @@ import com.aditya.commonlib.enums.ChatEventType;
 import com.aditya.commonlib.enums.MessageRole;
 import com.aditya.commonlib.event.FileStoreRequestEvent;
 import com.aditya.commonlib.security.AuthUtil;
-import com.aditya.intelligentservice.client.WorkspaceClient;
 import com.aditya.intelligentservice.dto.StreamResponse;
 import com.aditya.intelligentservice.entity.ChatEvent;
 import com.aditya.intelligentservice.entity.ChatMessage;
@@ -21,15 +20,14 @@ import com.aditya.intelligentservice.service.UsageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -39,49 +37,62 @@ import java.util.concurrent.atomic.AtomicReference;
 public class AiGenerationServiceImpl implements AiGenerationService {
 
     private final ChatClient chatClient;
+    private final AuthUtil authUtil;
     private final FileTreeContextAdvisor fileTreeContextAdvisor;
     private final ChatSessionRepository chatSessionRepository;
     private final LlmResponseParser llmResponseParser;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatEventRepository chatEventRepository;
     private final UsageService usageService;
-    private final WorkspaceClient workspaceClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Override
-    public Flux<StreamResponse> streamResponse(String userMessage, Long projectId) {
-        Long rawUserId = AuthUtil.getCurrentUserId();
-        final Long userId = (rawUserId != null) ? rawUserId : 1L;
 
+    @Override
+    @PreAuthorize("@security.canEditProject(#projectId)")
+    public Flux<StreamResponse> streamResponse(String userMessage, Long projectId) {
+
+//        usageService.checkDailyTokensUsage();
+
+        Long userId = authUtil.getCurrentUserId();
         ChatSession chatSession = createChatSessionIfNotExists(projectId, userId);
+
+        String promptWithContext = fileTreeContextAdvisor.buildFileTreePrompt(projectId, userMessage);
 
         StringBuilder fullResponseBuffer = new StringBuilder();
         AtomicReference<Long> startTime = new AtomicReference<>(System.currentTimeMillis());
         AtomicReference<Long> endTime = new AtomicReference<>(0L);
-
-        String augmentedPrompt = fileTreeContextAdvisor.buildFileTreePrompt(projectId, userMessage);
+        AtomicReference<Usage> usageRef = new AtomicReference<>();
 
         return chatClient.prompt()
                 .system(PromptUtils.CODE_GENERATION_SYSTEM_PROMPT)
-                .user(augmentedPrompt)
+                .user(promptWithContext)
                 .stream()
                 .chatResponse()
                 .doOnNext(response -> {
                     if (response.getResults() != null && !response.getResults().isEmpty()) {
                         String content = response.getResult().getOutput().getText();
-                        if (content != null && !content.isEmpty() && endTime.get() == 0) {
+
+                        if(content != null && !content.isEmpty() && endTime.get() == 0) { // first non-empty chunk received
                             endTime.set(System.currentTimeMillis());
                         }
-                        fullResponseBuffer.append(content != null ? content : "");
+                        if(response.getMetadata() != null && response.getMetadata().getUsage() != null) {
+                            usageRef.set(response.getMetadata().getUsage());
+                        }
+                        if (content != null) {
+                            fullResponseBuffer.append(content);
+                        }
                     }
+
                 })
                 .doOnComplete(() -> {
                     Schedulers.boundedElastic().schedule(() -> {
-                        long duration = (System.currentTimeMillis() - startTime.get()) / 1000;
-                        finalizeChats(userMessage, chatSession, fullResponseBuffer.toString(), duration, userId);
+//                        parseAndSaveFiles(fullResponseBuffer.toString(), projectId);
+
+                        long duration = (endTime.get() - startTime.get()) /  1000;
+                        finalizeChats(userMessage, chatSession, fullResponseBuffer.toString(), duration, usageRef.get(), userId);
                     });
                 })
-                .doOnError(error -> log.error("Error during streaming for projectId: {}", projectId, error))
+                .doOnError(error -> log.error("Error during streaming for projectId: {}", projectId))
                 .map(response -> {
                     if (response.getResults() != null && !response.getResults().isEmpty()) {
                         String text = response.getResult().getOutput().getText();
@@ -91,27 +102,33 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 });
     }
 
-    private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration, Long userId) {
+    private void finalizeChats(String userMessage, ChatSession chatSession, String fullText, Long duration, Usage usage, Long userId) {
         Long projectId = chatSession.getProjectId();
 
-        usageService.recordTokenUsage(chatSession.getUserId(), 500);
+        int promptTokens = 0;
+        int completionTokens = 0;
+        int totalTokens = 0;
 
-        kafkaTemplate.send("usage-log-events", String.valueOf(userId), UsageLogEvent.builder()
-                .userId(String.valueOf(userId))
-                .projectId(String.valueOf(projectId))
-                .modelName("gpt-4o")
-                .promptTokens(200)
-                .completionTokens(300)
-                .totalTokens(500)
-                .timestamp(LocalDateTime.now())
-                .build());
+        if (usage != null) {
+            if (usage.getTotalTokens() != null) {
+                totalTokens = usage.getTotalTokens().intValue();
+                usageService.recordTokenUsage(chatSession.getUserId(), totalTokens);
+            }
+            if (usage.getPromptTokens() != null) {
+                promptTokens = usage.getPromptTokens().intValue();
+            }
+            if (usage.getGenerationTokens() != null) {
+                completionTokens = usage.getGenerationTokens().intValue();
+            }
+        }
 
+        // Save the User message
         chatMessageRepository.save(
                 ChatMessage.builder()
                         .chatSession(chatSession)
                         .role(MessageRole.USER)
                         .content(userMessage)
-                        .tokensUsed(200)
+                        .tokensUsed(promptTokens)
                         .build()
         );
 
@@ -119,21 +136,19 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .role(MessageRole.ASSISTANT)
                 .content(fullText)
                 .chatSession(chatSession)
-                .tokensUsed(300)
+                .tokensUsed(completionTokens)
                 .build();
 
         assistantChatMessage = chatMessageRepository.save(assistantChatMessage);
 
         List<ChatEvent> chatEventList = llmResponseParser.parseChatEvents(fullText, assistantChatMessage);
         chatEventList.add(0, ChatEvent.builder()
-                .type(ChatEventType.THOUGHT)
-                .status(ChatEventStatus.CONFIRMED)
-                .chatMessage(assistantChatMessage)
-                .content("Thought for " + duration + "s")
-                .sequenceOrder(0)
+                        .type(ChatEventType.THOUGHT)
+                        .status(ChatEventStatus.CONFIRMED)
+                        .chatMessage(assistantChatMessage)
+                        .content("Thought for "+duration+"s")
+                        .sequenceOrder(0)
                 .build());
-
-        Map<String, String> updatedFiles = new HashMap<>();
 
         chatEventList.stream()
                 .filter(e -> e.getType() == ChatEventType.FILE_EDIT)
@@ -147,34 +162,22 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                             e.getContent(),
                             userId
                     );
-                    kafkaTemplate.send("file-storage-request-event", "project-" + projectId, fileStoreRequestEvent);
-                    if (e.getFilePath() != null && e.getContent() != null) {
-                        updatedFiles.put(e.getFilePath(), e.getContent());
-                    }
+                    log.info("Storage request event sent: {}", e.getFilePath());
+                    kafkaTemplate.send("file-storage-request-event", "project-"+projectId, fileStoreRequestEvent);
                 });
 
         chatEventRepository.saveAll(chatEventList);
-
-        kafkaTemplate.send("ai-generation-completed-events", String.valueOf(projectId), AiGenerationCompletedEvent.builder()
-                .sessionId(chatSession.getId().toString())
-                .projectId(String.valueOf(projectId))
-                .userId(String.valueOf(userId))
-                .status("SUCCESS")
-                .responseText(fullText)
-                .updatedFiles(updatedFiles)
-                .promptTokens(200)
-                .completionTokens(300)
-                .timestamp(LocalDateTime.now())
-                .build());
     }
 
     private ChatSession createChatSessionIfNotExists(Long projectId, Long userId) {
         ChatSession chatSession = chatSessionRepository.findByProjectIdAndUserId(projectId, userId).orElse(null);
-        if (chatSession == null) {
+
+        if(chatSession == null) {
             chatSession = ChatSession.builder()
                     .projectId(projectId)
                     .userId(userId)
                     .build();
+
             chatSession = chatSessionRepository.save(chatSession);
         }
         return chatSession;

@@ -2,10 +2,10 @@ package com.aditya.accountservice.controller;
 
 import com.aditya.accountservice.mapper.UserMapper;
 import com.aditya.accountservice.repository.UserRepository;
+import com.aditya.accountservice.service.SubscriptionService;
 import com.aditya.commonlib.dto.PlanDto;
 import com.aditya.commonlib.dto.UserDto;
 import com.aditya.commonlib.exception.ResourceNotFoundException;
-import com.stripe.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

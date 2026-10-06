@@ -13,8 +13,10 @@ import com.aditya.commonlib.security.JwtUserPrincipal;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,8 +34,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse signup(SignupRequest request) {
-        userRepository.findByUsername(request.username()).ifPresent(user -> {
-            throw new BadRequestException("User already exists with username: "+request.username());
+        userRepository.findByUsername(request.email()).ifPresent(user -> {
+            throw new BadRequestException("User already exists with email: "+request.email());
         });
 
         User user = userMapper.toEntity(request);
@@ -50,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
         JwtUserPrincipal user = (JwtUserPrincipal) authentication.getPrincipal();

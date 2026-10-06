@@ -10,49 +10,48 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true
-      corsConfigurations:
-        '[/**]':
-          allowedOrigins: "*"
-          allowedMethods:
-            - GET
-            - POST
-            - PUT
-            - DELETE
-            - OPTIONS
-            - PATCH
-          allowedHeaders: "*"
       routes:
-        - id: account-service
-          uri: ${ACCOUNT_SERVICE_URL:http://account-service:8081}
+        - id: account-service-public
+          uri: lb://account-service
           predicates:
-            - Path=/api/v1/auth/**, /api/v1/users/**, /api/v1/subscriptions/**
+            - Path=/api/v1/auth/**, /api/v1/billing/webhook
+
+        - id: account-service-protected
+          uri: lb://account-service
+          predicates:
+            - Path=/api/v1/users/**, /api/v1/billing/**
 
         - id: project-service
-          uri: ${PROJECT_SERVICE_URL:http://project-service:8082}
+          uri: lb://project-service
           predicates:
-            - Path=/api/v1/projects/**, /api/v1/files/**
+            - Path=/api/v1/projects/**, /api/v1/files/**, /api/v1/members/**
 
         - id: intelligent-service
-          uri: ${INTELLIGENT_SERVICE_URL:http://intelligent-service:8083}
+          uri: lb://intelligent-service
           predicates:
-            - Path=/api/v1/chat/**, /api/v1/ai/**
+            - Path=/api/v1/chats/**
+          metadata:
+            response-timeout: 300000
+            connect-timeout: 10000
 
         - id: sandbox-service
-          uri: ${SANDBOX_SERVICE_URL:http://sandbox-service:8085}
+          uri: lb://sandbox-service
           predicates:
             - Path=/api/v1/sandbox/**
 
 eureka:
   client:
-    serviceUrl:
-      defaultZone: ${EUREKA_URI:http://discovery-service:8761/eureka/}
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+# ──────── ADDED SECTIONS ────────
 
 jwt:
-  secret: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
+  secretKey: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
 
-springdoc:
-  api-docs:
-    enabled: true
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
+app:
+  security:
+    public-routes:
+      - /api/v1/auth/**
+      - /api/v1/billing/webhook
+      - /actuator/**
