@@ -1,18 +1,29 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: novabuild-ssl-cert
+  namespace: novabuild
+spec:
+  domains:
+    - novabuild.adityabharde.dev
+
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: novabuild-ingress
   namespace: novabuild
   annotations:
-    # Use GKE managed ingress or Nginx Ingress Controller
     kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "novabuild-ip"
+    networking.gke.io/managed-certificates: "novabuild-ssl-cert"
 spec:
   rules:
-    - host: adityabharde.dev
+    - host: novabuild.adityabharde.dev
       http:
         paths:
-          - path: /projects/novabuild
-            pathType: Prefix
+          - path: /*
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: frontend

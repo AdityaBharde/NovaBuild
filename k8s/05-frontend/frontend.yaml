@@ -41,6 +41,8 @@ kind: Service
 metadata:
   name: frontend
   namespace: novabuild
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   type: LoadBalancer
   selector:
