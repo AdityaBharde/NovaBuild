@@ -1,16 +1,21 @@
 package com.aditya.intelligentservice.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import lombok.*;
 
 import java.io.Serializable;
 
-@AllArgsConstructor
+@Embeddable
+@Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-@ToString
-@Getter
-@Setter
 public class ChatSessionId implements Serializable {
-    Long projectId;
-    Long userId;
+
+    @Column(name = "project_id")
+    private Long projectId;
+
+    @Column(name = "user_id")
+    private Long userId;
 }

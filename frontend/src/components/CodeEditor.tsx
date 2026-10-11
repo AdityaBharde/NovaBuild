@@ -1,7 +1,7 @@
 import React from 'react';
 import Editor from '@monaco-editor/react';
 import { ProjectFile } from '../types';
-import { Code2 } from 'lucide-react';
+import { Code2, FileCode } from 'lucide-react';
 
 interface CodeEditorProps {
   activeFile: ProjectFile | null;
@@ -11,9 +11,9 @@ interface CodeEditorProps {
 export const CodeEditor: React.FC<CodeEditorProps> = ({ activeFile, onChangeContent }) => {
   if (!activeFile) {
     return (
-      <div className="flex-1 bg-[#0e0f12] flex flex-col items-center justify-center text-gray-500 select-none">
-        <Code2 className="w-12 h-12 mb-3 text-gray-600" />
-        <p className="text-sm font-medium">Select a file from the explorer or generate a new app</p>
+      <div className="flex-1 flex flex-col items-center justify-center text-text-secondary select-none">
+        <Code2 className="w-10 h-10 mb-3 text-border" />
+        <p className="text-sm">Select a file to view code</p>
       </div>
     );
   }
@@ -28,12 +28,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeFile, onChangeCont
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0e0f12]">
+    <div className="flex-1 flex flex-col h-full">
       {/* Tab Header */}
-      <div className="h-9 bg-[#12141a] border-b border-[#242731] flex items-center px-4">
-        <span className="text-xs font-mono text-pink-400 bg-pink-500/10 px-2.5 py-1 rounded border border-pink-500/20">
-          {activeFile.filePath}
-        </span>
+      <div className="h-9 border-b border-border bg-surface flex items-center px-1 shrink-0 overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-2 px-3 py-1.5 h-full bg-background border-t-2 border-t-accent border-r border-l border-border rounded-t-sm text-sm text-text-primary min-w-fit">
+          <FileCode className="w-3.5 h-3.5 text-accent" />
+          <span className="truncate">{activeFile.filePath.split('/').pop()}</span>
+        </div>
       </div>
 
       {/* Monaco Editor */}
@@ -49,10 +50,17 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeFile, onChangeCont
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             wordWrap: 'on',
-            fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
             lineNumbers: 'on',
             automaticLayout: true,
+            padding: { top: 16 },
+            // Customize the dark theme colors slightly via options if possible, or just use vs-dark
           }}
+          loading={
+            <div className="w-full h-full flex items-center justify-center text-text-secondary text-sm">
+              Loading editor...
+            </div>
+          }
         />
       </div>
     </div>

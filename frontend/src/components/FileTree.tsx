@@ -1,71 +1,65 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ProjectFile } from '../types';
-import { FileCode, Folder, Plus, FileText, Code } from 'lucide-react';
+import { FileCode, FileJson, FileText, ChevronRight, ChevronDown } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 interface FileTreeProps {
   files: ProjectFile[];
   activeFilePath: string | null;
   onSelectFile: (file: ProjectFile) => void;
-  onNewFile: () => void;
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({
   files,
   activeFilePath,
   onSelectFile,
-  onNewFile,
 }) => {
   const getIcon = (filePath: string) => {
-    if (filePath.endsWith('.tsx') || filePath.endsWith('.jsx') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
-      return <FileCode className="w-4 h-4 text-pink-400 shrink-0" />;
+    if (filePath.endsWith('.tsx') || filePath.endsWith('.ts') || filePath.endsWith('.jsx') || filePath.endsWith('.js')) {
+      return <FileCode className="w-3.5 h-3.5 text-accent shrink-0" />;
     }
-    if (filePath.endsWith('.json') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
-      return <Code className="w-4 h-4 text-purple-400 shrink-0" />;
+    if (filePath.endsWith('.json')) {
+      return <FileJson className="w-3.5 h-3.5 text-[#eab308] shrink-0" />; // yellow
     }
-    return <FileText className="w-4 h-4 text-gray-400 shrink-0" />;
+    return <FileText className="w-3.5 h-3.5 text-text-secondary shrink-0" />;
   };
 
+  // Simple flat rendering for now, could be hierarchical
   return (
-    <div className="w-60 bg-[#12141a] border-r border-[#242731] flex flex-col h-full select-none">
-      <div className="p-3 border-b border-[#242731] flex items-center justify-between">
-        <div className="flex items-center space-x-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          <Folder className="w-4 h-4 text-pink-500" />
-          <span>Explorer</span>
+    <div className="flex flex-col select-none py-2 h-full">
+      {files.length === 0 ? (
+        <div className="px-4 py-8 text-center text-xs text-text-secondary">
+          No files generated yet.
         </div>
-        <button
-          onClick={onNewFile}
-          className="p-1 hover:bg-[#1e212b] rounded text-gray-400 hover:text-white transition"
-          title="New File"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
-        {files.length === 0 ? (
-          <div className="px-4 py-8 text-center text-xs text-gray-500">
-            No files in project. Generate code with prompt panel.
-          </div>
-        ) : (
-          files.map((file) => {
+      ) : (
+        <div className="space-y-0.5">
+          {files.map((file) => {
             const isActive = activeFilePath === file.filePath;
+            // Extract just the name or structure
+            const segments = file.filePath.split('/');
+            const name = segments[segments.length - 1];
+            const indent = segments.length - 1;
+
             return (
               <button
                 key={file.filePath}
                 onClick={() => onSelectFile(file)}
-                className={`w-full text-left px-3 py-1.5 text-xs flex items-center space-x-2 transition ${
+                style={{ paddingLeft: `${indent * 12 + 12}px` }}
+                className={twMerge(
+                  "w-full text-left pr-3 py-1 text-sm flex items-center gap-2 transition-colors",
                   isActive
-                    ? 'bg-pink-500/10 text-pink-400 border-l-2 border-pink-500 font-medium'
-                    : 'text-gray-300 hover:bg-[#191c24]'
-                }`}
+                    ? "bg-accent/10 text-accent font-medium relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-accent"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated"
+                )}
               >
-                {getIcon(file.filePath)}
-                <span className="truncate">{file.filePath}</span>
+                {getIcon(name)}
+                <span className="truncate">{name}</span>
               </button>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 };

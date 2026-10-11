@@ -18,8 +18,16 @@ public class FileTreeContextAdvisor {
     public String buildFileTreePrompt(Long projectId, String userPrompt) {
         try {
             List<FileNode> fileTree = workspaceClient.getFileTree(projectId).files();
-            String fileTreeContext = fileTree != null ? fileTree.toString() : "[]";
-            return String.format("%s\n\n---- FILE_TREE ----\n%s", userPrompt, fileTreeContext);
+            StringBuilder sb = new StringBuilder();
+            if (fileTree == null || fileTree.isEmpty()) {
+                sb.append("Current Project Files: [Empty Project - no files exist yet. Ready for index.html or initial components]");
+            } else {
+                sb.append("Current Project Files:\n");
+                for (FileNode node : fileTree) {
+                    sb.append("- ").append(node.path()).append("\n");
+                }
+            }
+            return String.format("%s\n\n---- PROJECT CONTEXT ----\n%s", userPrompt, sb.toString().trim());
         } catch (Exception e) {
             log.warn("Could not fetch file tree for project {}: {}", projectId, e.getMessage());
             return userPrompt;

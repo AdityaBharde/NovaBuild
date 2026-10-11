@@ -1,229 +1,203 @@
 import React, { useState, useEffect } from 'react';
-import { User, Project, ProjectFile, ChatMessage, SandboxStatus } from './types';
-import { getStoredUser, fetchProjects, createProject, deploySandbox, getSandboxStatus } from './api/client';
-import { LoginScreen } from './components/LoginScreen';
-import { Navbar } from './components/Navbar';
-import { FileTree } from './components/FileTree';
-import { CodeEditor } from './components/CodeEditor';
-import { PromptPanel } from './components/PromptPanel';
-import { PreviewWindow } from './components/PreviewWindow';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { User, Project, Subscription } from './types';
+import {
+  getStoredUser,
+  fetchProjects,
+  getSubscription,
+  logoutUser,
+} from './api/client';
+import { AuthScreen } from './components/auth/AuthScreen';
+import { AppLayout } from './components/layout/AppLayout';
+import { DashboardPage } from './components/dashboard/DashboardPage';
+import { ProjectsPage } from './components/projects/ProjectsPage';
+import { WorkspacePage } from './components/workspace/WorkspacePage';
+import { BillingPage } from './components/billing/BillingPage';
+import { UsagePage } from './components/usage/UsagePage';
+import { SettingsPage } from './components/settings/SettingsPage';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(getStoredUser());
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [files, setFiles] = useState<ProjectFile[]>([]);
-  const [activeFile, setActiveFile] = useState<ProjectFile | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [sandboxStatus, setSandboxStatus] = useState<SandboxStatus | null>(null);
-  const [isDeploying, setIsDeploying] = useState(false);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
-      loadProjects();
+      loadInitialData();
     }
   }, [user]);
 
-  const loadProjects = async () => {
+  const loadInitialData = async () => {
+    setIsLoading(true);
     try {
-      const data = await fetchProjects();
-      setProjects(data);
-      if (data.length > 0 && !currentProject) {
-        selectProject(data[0]);
-      } else if (data.length === 0) {
-        // Auto-create a default project for new user
-        handleAutoCreateFirstProject();
+      // 1. Fetch user projects
+      const projs = await fetchProjects();
+      setProjects(projs);
+      if (projs.length > 0 && !activeProject) {
+        setActiveProject(projs[0]);
       }
+
+      // 2. Fetch authoritative subscription
+      const sub = await getSubscription();
+      setSubscription(sub);
     } catch (e) {
-      console.error(e);
-      // Fallback demo project
-      handleAutoCreateFirstProject();
-    }
-  };
-
-  const handleAutoCreateFirstProject = () => {
-    const demoProj: Project = {
-      id: 'proj-demo-101',
-      name: 'E-Commerce Dashboard',
-      description: 'Lovable generated React + Vite Web Application',
-      userId: user?.userId || 'user-1',
-    };
-    setProjects([demoProj]);
-    selectProject(demoProj);
-  };
-
-  const selectProject = (p: Project) => {
-    setCurrentProject(p);
-    const defaultFiles: ProjectFile[] = [
-      {
-        filePath: 'src/App.tsx',
-        content: `import React from 'react';\n\nexport default function App() {\n  return (\n    <div className="min-h-screen bg-slate-900 text-white p-8 flex flex-col items-center justify-center">\n      <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">\n        ${p.name}\n      </h1>\n      <p className="mt-3 text-slate-400 font-medium">Generated with NovaBuild AI Studio</p>\n    </div>\n  );\n}`,
-      },
-      {
-        filePath: 'src/main.tsx',
-        content: `import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App';\nimport './index.css';\n\nReactDOM.createRoot(document.getElementById('root')!).render(<App />);`,
-      },
-      {
-        filePath: 'package.json',
-        content: `{\n  "name": "${p.name.toLowerCase().replace(/\s+/g, '-')}",\n  "private": true,\n  "dependencies": {\n    "react": "^18.3.1"\n  }\n}`,
-      },
-    ];
-    setFiles(defaultFiles);
-    setActiveFile(defaultFiles[0]);
-    checkSandbox(String(p.id));
-  };
-
-  const checkSandbox = async (projectId: string) => {
-    const status = await getSandboxStatus(projectId);
-    setSandboxStatus(status);
-  };
-
-  const handleNewProject = async () => {
-    const name = prompt('Enter Project Name:', 'My Nova App');
-    if (!name) return;
-    try {
-      const created = await createProject(name, 'NovaBuild generated React app');
-      setProjects((prev) => [...prev, created]);
-      selectProject(created);
-    } catch (err) {
-      const fallbackProj: Project = {
-        id: 'proj-' + Date.now(),
-        name,
-        userId: user?.userId || '1',
-      };
-      setProjects((prev) => [...prev, fallbackProj]);
-      selectProject(fallbackProj);
-    }
-  };
-
-  const handleSendPrompt = async (promptText: string) => {
-    const userMsg: ChatMessage = {
-      id: String(Date.now()),
-      role: 'USER',
-      content: promptText,
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setIsStreaming(true);
-
-    try {
-      // Simulate real-time SSE streaming response from intelligent-service
-      const assistantMsgId = String(Date.now() + 1);
-      const assistantMsg: ChatMessage = {
-        id: assistantMsgId,
-        role: 'ASSISTANT',
-        content: `Updating app structure based on prompt: "${promptText}"...`,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      setTimeout(() => {
-        setFiles((prevFiles) => {
-          return prevFiles.map((f) =>
-            f.filePath === 'src/App.tsx'
-              ? {
-                  ...f,
-                  content: `import React from 'react';\n\nexport default function App() {\n  return (\n    <div className="min-h-screen bg-slate-950 text-white p-12 flex flex-col items-center justify-center space-y-4">\n      <div className="px-4 py-1.5 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-semibold">\n        AI Generated App\n      </div>\n      <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-center">\n        ${promptText}\n      </h1>\n      <p className="text-slate-400 max-w-md text-center text-sm">\n        Compiled dynamically by NovaBuild Spring Boot & Kafka microservices cluster.\n      </p>\n    </div>\n  );\n}`,
-                }
-              : f
-          );
-        });
-        setIsStreaming(false);
-      }, 1200);
-    } catch (e) {
-      setIsStreaming(false);
-    }
-  };
-
-  const handleDeployPreview = async () => {
-    if (!currentProject) return;
-    setIsDeploying(true);
-    try {
-      const status = await deploySandbox(String(currentProject.id));
-      setSandboxStatus(status);
-    } catch (e) {
-      setSandboxStatus({
-        projectId: String(currentProject.id),
-        containerId: 'novabuild-preview-local',
-        status: 'RUNNING',
-        previewUrl: 'http://localhost:3000',
-        exposedPort: 3000,
-      });
+      console.error('Error loading initial app data:', e);
     } finally {
-      setIsDeploying(false);
+      setIsLoading(false);
     }
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    logoutUser();
     setUser(null);
+    setSubscription(null);
     setProjects([]);
-    setCurrentProject(null);
-    setMessages([]);
+    setActiveProject(null);
   };
 
-  // 1. If User is NOT logged in -> Show Full Page Login/Registration Screen
+  const handleProjectCreated = (newProject: Project) => {
+    setProjects((prev) => [newProject, ...prev]);
+    setActiveProject(newProject);
+  };
+
+  const handleProjectUpdated = (updatedProject: Project) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
+    );
+    if (activeProject?.id === updatedProject.id) {
+      setActiveProject(updatedProject);
+    }
+  };
+
+  const handleProjectDeleted = (id: string | number) => {
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    if (activeProject?.id === id) {
+      const remaining = projects.filter((p) => p.id !== id);
+      setActiveProject(remaining.length > 0 ? remaining[0] : null);
+    }
+  };
+
   if (!user) {
-    return <LoginScreen onSuccess={(authenticatedUser) => setUser(authenticatedUser)} />;
+    return (
+      <AuthScreen
+        onSuccess={(authenticatedUser) => {
+          setUser(authenticatedUser);
+        }}
+      />
+    );
   }
 
-  // 2. If User IS logged in -> Show Full NovaBuild Workspace
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0b0c10] text-gray-100">
-      <Navbar
-        user={user}
-        currentProject={currentProject}
-        projects={projects}
-        onSelectProject={selectProject}
-        onNewProject={handleNewProject}
-        onOpenAuth={() => {}}
-        onLogout={handleLogout}
-        onDeployPreview={handleDeployPreview}
-        isDeploying={isDeploying}
-      />
-
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: File Tree Explorer */}
-        <FileTree
-          files={files}
-          activeFilePath={activeFile?.filePath || null}
-          onSelectFile={(f) => setActiveFile(f)}
-          onNewFile={() => {
-            const name = prompt('New file path (e.g. src/Button.tsx):');
-            if (name) {
-              const newF: ProjectFile = { filePath: name, content: '// New component code' };
-              setFiles((prev) => [...prev, newF]);
-              setActiveFile(newF);
+    <BrowserRouter basename={(import.meta as any).env?.BASE_URL || '/projects/novabuild'}>
+      <Routes>
+        {/* App Layout Route */}
+        <Route
+          element={
+            <AppLayout
+              user={user}
+              subscription={subscription}
+              projects={projects}
+              activeProject={activeProject}
+              onSelectProject={setActiveProject}
+              onProjectCreated={handleProjectCreated}
+              onLogout={handleLogout}
+              onRefreshData={loadInitialData}
+            />
+          }
+        >
+          {/* Dashboard / Overview */}
+          <Route
+            path="/"
+            element={
+              <DashboardPage
+                user={user}
+                projects={projects}
+                subscription={subscription}
+                onSelectProject={setActiveProject}
+                onOpenNewProjectModal={() => {
+                  const btn = document.querySelector('header button');
+                  if (btn) (btn as HTMLElement).click();
+                }}
+                isLoading={isLoading}
+              />
             }
-          }}
-        />
+          />
+          <Route
+            path="/dashboard"
+            element={<Navigate to="/" replace />}
+          />
 
-        {/* Center: Code Editor */}
-        <CodeEditor
-          activeFile={activeFile}
-          onChangeContent={(newVal) => {
-            if (!activeFile) return;
-            setFiles((prev) =>
-              prev.map((f) => (f.filePath === activeFile.filePath ? { ...f, content: newVal } : f))
-            );
-            setActiveFile((prev) => (prev ? { ...prev, content: newVal } : null));
-          }}
-        />
+          {/* Dedicated Projects Management */}
+          <Route
+            path="/projects"
+            element={
+              <ProjectsPage
+                projects={projects}
+                onSelectProject={setActiveProject}
+                onOpenNewProjectModal={() => {
+                  const btn = document.querySelector('header button');
+                  if (btn) (btn as HTMLElement).click();
+                }}
+                onProjectUpdated={handleProjectUpdated}
+                onProjectDeleted={handleProjectDeleted}
+                isLoading={isLoading}
+              />
+            }
+          />
 
-        {/* Right: AI Builder Prompt Chat Panel */}
-        <PromptPanel
-          messages={messages}
-          isStreaming={isStreaming}
-          onSendPrompt={handleSendPrompt}
-        />
+          {/* AI Coding Workspace */}
+          <Route
+            path="/workspace/:projectId"
+            element={
+              <WorkspacePage
+                onBack={() => {}}
+                onProjectLoaded={setActiveProject}
+              />
+            }
+          />
 
-        {/* Far Right: Live Sandbox Preview Window */}
-        <PreviewWindow
-          status={sandboxStatus}
-          onDeploy={handleDeployPreview}
-          isDeploying={isDeploying}
-        />
-      </div>
-    </div>
+          {/* Stripe Billing & Subscriptions */}
+          <Route
+            path="/billing"
+            element={
+              <BillingPage
+                subscription={subscription}
+                onSubscriptionUpdated={setSubscription}
+              />
+            }
+          />
+
+          {/* Usage & Quotas */}
+          <Route
+            path="/usage"
+            element={
+              <UsagePage
+                projects={projects}
+                subscription={subscription}
+              />
+            }
+          />
+
+          {/* Settings */}
+          <Route
+            path="/settings"
+            element={
+              <SettingsPage
+                user={user}
+                subscription={subscription}
+                onUserUpdated={setUser}
+                onLogout={handleLogout}
+              />
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 };
 

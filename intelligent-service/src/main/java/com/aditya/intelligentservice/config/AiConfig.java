@@ -1,6 +1,7 @@
 package com.aditya.intelligentservice.config;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,6 +10,10 @@ public class AiConfig {
 
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder) {
-        return builder.build();
+        return  builder
+                .defaultAdvisors(
+                        new SimpleLoggerAdvisor()
+                )
+                .build();
     }
 }

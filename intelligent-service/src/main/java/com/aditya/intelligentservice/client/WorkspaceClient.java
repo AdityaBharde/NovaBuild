@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "project-service", path = "", url="${PROJECT_SERVICE_URI:}")
+@FeignClient(name = "project-service", url="${WORKSPACE_SERVICE_URI:}")
 public interface WorkspaceClient {
 
     @GetMapping("/internal/v1/projects/{projectId}/files/tree")
@@ -15,6 +15,17 @@ public interface WorkspaceClient {
 
     @GetMapping("/internal/v1/projects/{projectId}/files/content")
     String getFileContent(@PathVariable("projectId") Long projectId, @RequestParam("path") String path);
+
+    @org.springframework.web.bind.annotation.PostMapping("/internal/v1/projects/{projectId}/files/content")
+    void saveFile(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("path") String path,
+            @org.springframework.web.bind.annotation.RequestBody String content);
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/internal/v1/projects/{projectId}/files")
+    void deleteFile(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("path") String path);
 
     @GetMapping("/internal/v1/projects/{projectId}/permissions/check")
     boolean checkPermission(

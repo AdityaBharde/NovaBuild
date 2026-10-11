@@ -19,6 +19,7 @@
         <dependency>
             <groupId>com.aditya</groupId>
             <artifactId>common-lib</artifactId>
+            <version>0.0.1</version>
         </dependency>
 
         <dependency>
@@ -83,13 +84,18 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
-            <version>7.3.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>1.6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>1.6.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

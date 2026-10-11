@@ -1,5 +1,6 @@
 package com.aditya.commonlib.security;
 
+import com.aditya.commonlib.dto.UserDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -17,7 +18,7 @@ import java.util.Date;
 @Component
 public class AuthUtil {
 
-    @Value("${jwt.secret:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}")
+    @Value("${jwt.secret-key}")
     private String jwtSecretKey;
 
     private SecretKey getSecretKey() {
@@ -48,11 +49,12 @@ public class AuthUtil {
         return new JwtUserPrincipal(userId, name, username, null, new ArrayList<>());
     }
 
-    public static Long getCurrentUserId() {
+    public Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof JwtUserPrincipal userPrincipal)) {
-            return null;
+        if(authentication == null || !(authentication.getPrincipal() instanceof JwtUserPrincipal userPrincipal)) {
+            throw new AuthenticationCredentialsNotFoundException("No JWT Found");
         }
         return userPrincipal.userId();
     }
+
 }

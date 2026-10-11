@@ -1,35 +1,30 @@
 package com.aditya.intelligentservice.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.time.Instant;
 
 @Entity
 @Table(name = "chat_sessions")
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
+@Getter @Setter @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ChatSession {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
-    private Long projectId;
-
-    @Column(nullable = false)
-    private Long userId;
-
-    @OneToMany(mappedBy = "chatSession", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ChatMessage> messages;
+    @EmbeddedId
+    private ChatSessionId id;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    @Column(nullable = false, updatable = false)
+    Instant createdAt;
+
+    @UpdateTimestamp
+    Instant updatedAt;
+
+    Instant deletedAt; // soft delete
 }

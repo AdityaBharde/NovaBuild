@@ -33,5 +33,24 @@ build/
 .vscode/
 
 .env
-.ps1
+*.env
+*.ps1
 
+# Secrets & Credentials (NEVER COMMIT)
+k8s/02-secrets.yaml
+k8s/*secret*.yaml
+*-secrets.yaml
+secrets.yaml
+*.pem
+*.key
+
+# Build artifacts and temp files
+BOOT-INF/
+**/BOOT-INF/
+.maven-cache/
+**/.maven-cache/
+workspace-contact-project/
+frontend/dist/
+frontend/node_modules/
+*.log
+*-cmd.txt

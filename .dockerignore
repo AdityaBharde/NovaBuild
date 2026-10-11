@@ -1,0 +1,7 @@
+.git
+.idea
+*.log
+**/node_modules
+**/dist
+**/.DS_Store
+workspace-contact-project

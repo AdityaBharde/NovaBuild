@@ -80,11 +80,13 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             projectFileRepository.saveAll(filesToSave);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize project from template", e);
+            log.warn("Failed to initialize project from template (MinIO might be empty or missing 'starter-projects' bucket): {}", e.getMessage());
+            // We intentionally don't throw an exception here so the project still gets created in the database!
         }
 
     }
 }
+
 
 
 

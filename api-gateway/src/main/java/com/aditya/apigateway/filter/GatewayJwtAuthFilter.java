@@ -36,6 +36,10 @@ public class GatewayJwtAuthFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
+        if (request.getMethod().name().equals("OPTIONS")) {
+            return chain.filter(exchange);
+        }
+
         boolean isPublic = securityProperties.getPublicRoutes().stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
 

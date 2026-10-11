@@ -15,9 +15,14 @@ public class CorsConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",
-                "http://novabuild.local"
+        corsConfig.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://localhost",
+                "http://127.0.0.1:*",
+                "http://127.0.0.1",
+                "https://adityabharde.dev",
+                "https://*.adityabharde.dev",
+                "*"
         ));
         corsConfig.setMaxAge(3600L);
         corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -30,3 +35,4 @@ public class CorsConfig {
         return new CorsWebFilter(source);
     }
 }
+

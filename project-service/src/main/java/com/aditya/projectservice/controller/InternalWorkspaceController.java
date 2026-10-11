@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
-@RequestMapping("/internal/v1/")
+@RequestMapping({"/internal/v1", "/internal"})
 @RestController
 public class InternalWorkspaceController {
 
@@ -23,6 +23,21 @@ public class InternalWorkspaceController {
     @GetMapping("/projects/{projectId}/files/content")
     public String getFileContent(@PathVariable Long projectId, @RequestParam String path) {
         return projectFileService.getFileContent(projectId, path);
+    }
+
+    @PostMapping("/projects/{projectId}/files/content")
+    public void saveFile(
+            @PathVariable Long projectId,
+            @RequestParam String path,
+            @RequestBody String content) {
+        projectFileService.saveFile(projectId, path, content);
+    }
+
+    @DeleteMapping("/projects/{projectId}/files")
+    public void deleteFile(
+            @PathVariable Long projectId,
+            @RequestParam String path) {
+        projectFileService.deleteFile(projectId, path);
     }
 
     @GetMapping("/projects/{projectId}/permissions/check")

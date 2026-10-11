@@ -1,8 +1,8 @@
 package com.aditya.commonlib.enums;
 
 public enum ChatEventType {
-    THOUGHT,
-    MESSAGE,
-    FILE_EDIT,
-    TOOL_LOG
+    THOUGHT,      // "Thought for 2s"
+    MESSAGE,      // Standard conversational text
+    FILE_EDIT,    // Code generation <file>
+    TOOL_LOG      // "Reading file..." <tool>
 }

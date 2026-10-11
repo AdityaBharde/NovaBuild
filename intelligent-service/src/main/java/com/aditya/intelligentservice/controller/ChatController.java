@@ -1,6 +1,5 @@
 package com.aditya.intelligentservice.controller;
 
-
 import com.aditya.intelligentservice.dto.ChatRequest;
 import com.aditya.intelligentservice.dto.ChatResponse;
 import com.aditya.intelligentservice.dto.StreamResponse;
@@ -17,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/chats")
+@RequestMapping("/chat")
 public class ChatController {
 
     private final AiGenerationService aiGenerationService;
@@ -29,6 +28,7 @@ public class ChatController {
 
         return aiGenerationService.streamResponse(request.message(), request.projectId())
                 .map(data -> ServerSentEvent.<StreamResponse>builder()
+                        .event(data.type() != null ? data.type() : "message")
                         .data(data)
                         .build());
     }

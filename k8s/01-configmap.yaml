@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: novabuild-config
+  namespace: novabuild
+data:
+  # Spring Environment Configuration
+  SPRING_PROFILES_ACTIVE: "prod"
+  
+  # Service Discovery & Config Endpoints (Kubernetes DNS)
+  CONFIG_SERVER_URI: "http://config-service:8888"
+  EUREKA_URI: "http://discovery-service:8761/eureka/"
+  
+  # Backing Infrastructure Hostnames
+  SPRING_DATASOURCE_USERNAME: "postgres"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  
+  # MinIO Object Storage
+  MINIO_URL: "http://minio:9000"
+  MINIO_BUCKET: "projects"
+  
+  # AI Provider Settings
+  AI_BASE_URL: "https://openrouter.ai/api"
+  
+  # Frontend Public URL
+  APP_FRONTEND_URL: "https://adityabharde.dev/projects/novabuild"

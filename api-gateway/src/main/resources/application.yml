@@ -4,47 +4,99 @@ server:
 spring:
   application:
     name: api-gateway
+
   cloud:
     gateway:
       discovery:
         locator:
           enabled: true
           lower-case-service-id: true
+
       routes:
-        - id: account-service-public
+        # Public authentication and webhook endpoints
+        - id: account-service-auth-v1
           uri: lb://account-service
           predicates:
-            - Path=/api/v1/auth/**, /api/v1/billing/webhook
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=2
 
-        - id: account-service-protected
+        - id: account-service-auth-compat
           uri: lb://account-service
           predicates:
-            - Path=/api/v1/users/**, /api/v1/billing/**
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
 
-        - id: project-service
+        - id: account-service-webhooks-v1
+          uri: lb://account-service
+          predicates:
+            - Path=/api/v1/webhooks/**,/api/v1/billing/webhook
+          filters:
+            - StripPrefix=2
+
+        - id: account-service-webhooks-compat
+          uri: lb://account-service
+          predicates:
+            - Path=/api/webhooks/**,/api/billing/webhook
+          filters:
+            - StripPrefix=1
+
+        # Protected account and billing endpoints
+        - id: account-service-protected-v1
+          uri: lb://account-service
+          predicates:
+            - Path=/api/v1/users/**,/api/v1/billing/**
+          filters:
+            - StripPrefix=2
+
+        - id: account-service-protected-compat
+          uri: lb://account-service
+          predicates:
+            - Path=/api/users/**,/api/billing/**
+          filters:
+            - StripPrefix=1
+
+        # Project service
+        - id: project-service-v1
           uri: lb://project-service
           predicates:
-            - Path=/api/v1/projects/**, /api/v1/files/**, /api/v1/members/**
+            - Path=/api/v1/projects/**,/api/v1/files/**,/api/v1/members/**
+          filters:
+            - StripPrefix=2
 
-        - id: intelligent-service
+        - id: project-service-compat
+          uri: lb://project-service
+          predicates:
+            - Path=/api/projects/**,/api/files/**,/api/members/**
+          filters:
+            - StripPrefix=1
+
+        # Intelligent service
+        - id: intelligent-service-v1
           uri: lb://intelligent-service
           predicates:
-            - Path=/api/v1/chats/**
+            - Path=/api/v1/chat/**,/api/v1/chats/**
+          filters:
+            - StripPrefix=2
           metadata:
             response-timeout: 300000
             connect-timeout: 10000
 
-        - id: sandbox-service
-          uri: lb://sandbox-service
+        - id: intelligent-service-compat
+          uri: lb://intelligent-service
           predicates:
-            - Path=/api/v1/sandbox/**
+            - Path=/api/chat/**,/api/chats/**
+          filters:
+            - StripPrefix=1
+          metadata:
+            response-timeout: 300000
+            connect-timeout: 10000
 
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
-
-# ──────── ADDED SECTIONS ────────
 
 jwt:
   secretKey: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
@@ -53,5 +105,9 @@ app:
   security:
     public-routes:
       - /api/v1/auth/**
+      - /api/auth/**
+      - /api/v1/webhooks/**
+      - /api/webhooks/**
       - /api/v1/billing/webhook
+      - /api/billing/webhook
       - /actuator/**

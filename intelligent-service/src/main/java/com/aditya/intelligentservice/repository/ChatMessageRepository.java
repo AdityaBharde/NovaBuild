@@ -19,4 +19,14 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 }
 
 
+//N+1 Query problem
+// chat_messages Query 1
+// chat_events with chat_message id: 1
+// chat_events with chat_message id: 2
+// chat_events with chat_message id: 3
+// chat_events with chat_message id: 4
+//..
+// chat_events with chat_message id: N
+
+
 

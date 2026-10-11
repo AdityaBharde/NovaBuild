@@ -3,6 +3,7 @@ package com.aditya.projectservice.service.impl;
 import com.aditya.commonlib.dto.FileNode;
 import com.aditya.commonlib.dto.FileTreeDto;
 import com.aditya.commonlib.exception.ResourceNotFoundException;
+import com.aditya.projectservice.dto.project.FileContentResponse;
 import com.aditya.projectservice.entity.Project;
 import com.aditya.projectservice.entity.ProjectFile;
 import com.aditya.projectservice.mapper.ProjectFileMapper;
@@ -12,6 +13,7 @@ import com.aditya.projectservice.service.ProjectFileService;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,23 @@ public class ProjectFileServiceImpl implements ProjectFileService {
 
     private static final String BUCKET_NAME = "projects";
 
+    private String getBucketName() {
+        return (projectBucket != null && !projectBucket.isBlank()) ? projectBucket : BUCKET_NAME;
+    }
+
+    private String sanitizeAndValidatePath(String path) {
+        if (path == null || path.isBlank()) {
+            throw new IllegalArgumentException("File path cannot be empty");
+        }
+        String clean = path.trim().replace('\\', '/');
+        while (clean.startsWith("/")) {
+            clean = clean.substring(1);
+        }
+        if (clean.contains("..")) {
+            throw new IllegalArgumentException("Path traversal not allowed: " + path);
+        }
+        return clean;
+    }
 
     @Override
     public FileTreeDto getFileTree(Long projectId) {
@@ -50,18 +69,19 @@ public class ProjectFileServiceImpl implements ProjectFileService {
 
     @Override
     public String getFileContent(Long projectId, String path) {
-        String objectName = projectId + "/" + path;
+        String cleanPath = sanitizeAndValidatePath(path);
+        String objectName = projectId + "/" + cleanPath;
         try (
                 InputStream is = minioClient.getObject(
                         GetObjectArgs.builder()
-                                .bucket(BUCKET_NAME)
+                                .bucket(getBucketName())
                                 .object(objectName)
                                 .build())) {
 
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.error("Failed to read file: {}/{}", projectId, path, e);
-            throw new RuntimeException("Failed to read file content", e);
+            log.error("Failed to read file: {}/{}", projectId, cleanPath, e);
+            throw new RuntimeException("Failed to read file content: " + cleanPath, e);
         }
     }
 
@@ -72,19 +92,19 @@ public class ProjectFileServiceImpl implements ProjectFileService {
                 () -> new ResourceNotFoundException("Project", projectId.toString())
         );
 
-        String cleanPath = path.startsWith("/") ? path.substring(1) : path;
+        String cleanPath = sanitizeAndValidatePath(path);
         String objectKey = projectId + "/" + cleanPath;
 
         try {
-            byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+            byte[] contentBytes = content != null ? content.getBytes(StandardCharsets.UTF_8) : new byte[0];
             InputStream inputStream = new ByteArrayInputStream(contentBytes);
             // saving the file content
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(projectBucket)
+                            .bucket(getBucketName())
                             .object(objectKey)
                             .stream(inputStream, contentBytes.length, -1)
-                            .contentType(determineContentType(path))
+                            .contentType(determineContentType(cleanPath))
                             .build());
 
             // Saving the metaData
@@ -101,9 +121,34 @@ public class ProjectFileServiceImpl implements ProjectFileService {
             log.info("Saved file: {}", objectKey);
         } catch (Exception e) {
             log.error("Failed to save file {}/{}", projectId, cleanPath, e);
-            throw new RuntimeException("File save failed", e);
+            throw new RuntimeException("File save failed: " + cleanPath, e);
         }
+    }
 
+    @Override
+    @Transactional
+    public void deleteFile(Long projectId, String path) {
+        Project project = projectRepository.findById(projectId).orElseThrow(
+                () -> new ResourceNotFoundException("Project", projectId.toString())
+        );
+
+        String cleanPath = sanitizeAndValidatePath(path);
+        String objectKey = projectId + "/" + cleanPath;
+
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(getBucketName())
+                            .object(objectKey)
+                            .build());
+
+            projectFileRepository.findByProjectIdAndPath(projectId, cleanPath)
+                    .ifPresent(projectFileRepository::delete);
+            log.info("Deleted file: {}", objectKey);
+        } catch (Exception e) {
+            log.error("Failed to delete file {}/{}", projectId, cleanPath, e);
+            throw new RuntimeException("File deletion failed: " + cleanPath, e);
+        }
     }
 
     private String determineContentType(String path) {
@@ -112,6 +157,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         if (path.endsWith(".jsx") || path.endsWith(".ts") || path.endsWith(".tsx")) return "text/javascript";
         if (path.endsWith(".json")) return "application/json";
         if (path.endsWith(".css")) return "text/css";
+        if (path.endsWith(".html") || path.endsWith(".htm")) return "text/html";
 
         return "text/plain";
     }

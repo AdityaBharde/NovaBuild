@@ -1,6 +1,5 @@
 package com.aditya.projectservice.entity;
 
-
 import com.aditya.commonlib.enums.PreviewStatus;
 import lombok.AccessLevel;
 import lombok.Getter;

@@ -1,6 +1,5 @@
 package com.aditya.intelligentservice.repository;
 
-
 import com.aditya.intelligentservice.entity.ChatEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 

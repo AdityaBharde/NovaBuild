@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novabuild-ingress
+  namespace: novabuild
+  annotations:
+    # Use GKE managed ingress or Nginx Ingress Controller
+    kubernetes.io/ingress.class: "gce"
+spec:
+  rules:
+    - host: adityabharde.dev
+      http:
+        paths:
+          - path: /projects/novabuild
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

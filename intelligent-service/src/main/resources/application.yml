@@ -1,9 +1,10 @@
 server:
   port: 8083
 
+debug: true
 spring:
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   application:
     name: intelligent-service
   datasource:
@@ -16,10 +17,20 @@ spring:
       ddl-auto: update
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
   ai:
     openai:
+      base-url: https://openrouter.ai/api
       api-key: ${AI_API_KEY}
-      
+      chat:
+        options:
+          model: nvidia/nemotron-3-ultra-550b-a55b:free
+          temperature: 0
+
+
 eureka:
   client:
     register-with-eureka: true
@@ -27,3 +38,14 @@ eureka:
     serviceUrl:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
 
+
+management:
+  endpoints:
+    enabled-by-default: true
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
