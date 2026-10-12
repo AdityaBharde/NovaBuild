@@ -36,20 +36,16 @@ concurrency:
 
 jobs:
   # ==========================================
-  # STAGE 1: Monorepo Change Detection
+  # STAGE 1: Monorepo Dynamic Change Detection
   # ==========================================
   filter:
     name: Detect Changed Components
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.changes.outputs.frontend }}
-      api-gateway: ${{ steps.changes.outputs.api-gateway }}
-      intelligent-service: ${{ steps.changes.outputs.intelligent-service }}
-      project-service: ${{ steps.changes.outputs.project-service }}
-      account-service: ${{ steps.changes.outputs.account-service }}
-      config-service: ${{ steps.changes.outputs.config-service }}
-      discovery-service: ${{ steps.changes.outputs.discovery-service }}
       k8s: ${{ steps.changes.outputs.k8s }}
+      backend_services: ${{ steps.matrix.outputs.services }}
+      has_backend: ${{ steps.matrix.outputs.has_backend }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -61,69 +57,72 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
-            api-gateway:
+            api_gateway:
               - 'api-gateway/**'
               - 'common-lib/**'
               - 'pom.xml'
-            intelligent-service:
+            intelligent_service:
               - 'intelligent-service/**'
               - 'common-lib/**'
               - 'pom.xml'
-            project-service:
+            project_service:
               - 'project-service/**'
               - 'common-lib/**'
               - 'pom.xml'
-            account-service:
+            account_service:
               - 'account-service/**'
               - 'common-lib/**'
               - 'pom.xml'
-            config-service:
+            config_service:
               - 'config-service/**'
               - 'pom.xml'
-            discovery-service:
+            discovery_service:
               - 'discovery-service/**'
               - 'pom.xml'
             k8s:
               - 'k8s/**'
 
+      - name: Compute Dynamic Backend Matrix
+        id: matrix
+        run: |
+          SERVICES=()
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ github.event.inputs.target_service }}"
+            if [ "$TARGET" = "all" ]; then
+              SERVICES=("discovery-service" "config-service" "api-gateway" "account-service" "project-service" "intelligent-service")
+            elif [ "$TARGET" != "frontend" ] && [ "$TARGET" != "k8s-manifests-only" ]; then
+              SERVICES=("$TARGET")
+            fi
+          else
+            if [ "${{ steps.changes.outputs.discovery_service }}" = "true" ]; then SERVICES+=("discovery-service"); fi
+            if [ "${{ steps.changes.outputs.config_service }}" = "true" ]; then SERVICES+=("config-service"); fi
+            if [ "${{ steps.changes.outputs.api_gateway }}" = "true" ]; then SERVICES+=("api-gateway"); fi
+            if [ "${{ steps.changes.outputs.account_service }}" = "true" ]; then SERVICES+=("account-service"); fi
+            if [ "${{ steps.changes.outputs.project_service }}" = "true" ]; then SERVICES+=("project-service"); fi
+            if [ "${{ steps.changes.outputs.intelligent_service }}" = "true" ]; then SERVICES+=("intelligent-service"); fi
+          fi
+
+          if [ ${#SERVICES[@]} -eq 0 ]; then
+            echo "services=[]" >> $GITHUB_OUTPUT
+            echo "has_backend=false" >> $GITHUB_OUTPUT
+          else
+            JSON=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -s -c .)
+            echo "services=$JSON" >> $GITHUB_OUTPUT
+            echo "has_backend=true" >> $GITHUB_OUTPUT
+          fi
+
   # ==========================================
   # STAGE 2: Build & Push Java Microservices
   # ==========================================
   build-and-push-backend:
-    name: Build & Push Backend Services
+    name: Build & Push (${{ matrix.service }})
     needs: filter
+    if: needs.filter.outputs.has_backend == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - service: discovery-service
-            port: 8761
-            flag: discovery-service
-          - service: config-service
-            port: 8888
-            flag: config-service
-          - service: api-gateway
-            port: 8080
-            flag: api-gateway
-          - service: account-service
-            port: 8084
-            flag: account-service
-          - service: project-service
-            port: 8082
-            flag: project-service
-          - service: intelligent-service
-            port: 8083
-            flag: intelligent-service
-    if: >
-      github.event_name == 'push' && (
-        needs.filter.outputs[matrix.flag] == 'true' ||
-        needs.filter.outputs.common == 'true'
-      ) ||
-      github.event_name == 'workflow_dispatch' && (
-        github.event.inputs.target_service == 'all' ||
-        github.event.inputs.target_service == matrix.service
-      )
+        service: ${{ fromJson(needs.filter.outputs.backend_services) }}
 
     steps:
       - name: Checkout Code
@@ -170,12 +169,9 @@ jobs:
     name: Build & Push Frontend
     needs: filter
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'push' && needs.filter.outputs.frontend == 'true' ||
-      github.event_name == 'workflow_dispatch' && (
-        github.event.inputs.target_service == 'all' ||
-        github.event.inputs.target_service == 'frontend'
-      )
+    if: >-
+      (github.event_name == 'push' && needs.filter.outputs.frontend == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_service == 'all' || github.event.inputs.target_service == 'frontend'))
 
     steps:
       - name: Checkout Code
@@ -213,7 +209,16 @@ jobs:
       - filter
       - build-and-push-backend
       - build-and-push-frontend
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    if: >-
+      always() &&
+      !cancelled() &&
+      !contains(needs.*.result, 'failure') &&
+      (
+        needs.filter.outputs.has_backend == 'true' ||
+        needs.filter.outputs.frontend == 'true' ||
+        needs.filter.outputs.k8s == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
 
     steps:
@@ -243,29 +248,38 @@ jobs:
           kubectl apply -f k8s/infrastructure/
           kubectl apply -f k8s/06-ingress/ingress.yaml
 
+      - name: Apply Service Manifests
+        if: needs.filter.outputs.k8s == 'true' || github.event.inputs.target_service == 'k8s-manifests-only' || github.event.inputs.target_service == 'all'
+        run: |
+          kubectl apply -f k8s/04-backend/
+          kubectl apply -f k8s/05-frontend/
+
       - name: Rolling Update - Backend Deployments
+        if: needs.filter.outputs.has_backend == 'true'
         run: |
-          SERVICES=("discovery-service" "config-service" "api-gateway" "account-service" "project-service" "intelligent-service")
-          for svc in "${SERVICES[@]}"; do
-            echo "Checking deployment status for $svc..."
-            kubectl set image deployment/$svc $svc=${{ env.REGISTRY }}/$svc:${{ github.sha }} -n ${{ env.NAMESPACE }} || true
-          done
-
-      - name: Rolling Update - Frontend Deployment
-        run: |
-          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/frontend:${{ github.sha }} -n ${{ env.NAMESPACE }} || true
-
-      - name: Verify Rollout Health
-        run: |
-          DEPLOYMENTS=("discovery-service" "config-service" "api-gateway" "account-service" "project-service" "intelligent-service" "frontend")
-          for dep in "${DEPLOYMENTS[@]}"; do
-            echo "Verifying rollout for $dep..."
-            if ! kubectl rollout status deployment/$dep -n ${{ env.NAMESPACE }} --timeout=180s; then
-              echo "::error::Rollout failed for $dep! Initiating automatic rollback..."
-              kubectl rollout undo deployment/$dep -n ${{ env.NAMESPACE }}
+          SERVICES='${{ needs.filter.outputs.backend_services }}'
+          for svc in $(echo "$SERVICES" | jq -r '.[]'); do
+            echo "Updating deployment for $svc with image tag ${{ github.sha }}..."
+            kubectl set image deployment/$svc $svc=${{ env.REGISTRY }}/$svc:${{ github.sha }} -n ${{ env.NAMESPACE }}
+            echo "Verifying rollout for $svc..."
+            if ! kubectl rollout status deployment/$svc -n ${{ env.NAMESPACE }} --timeout=180s; then
+              echo "::error::Rollout failed for $svc! Initiating automatic rollback..."
+              kubectl rollout undo deployment/$svc -n ${{ env.NAMESPACE }}
               exit 1
             fi
           done
+
+      - name: Rolling Update - Frontend Deployment
+        if: needs.filter.outputs.frontend == 'true' || github.event.inputs.target_service == 'all' || github.event.inputs.target_service == 'frontend'
+        run: |
+          echo "Updating deployment for frontend with image tag ${{ github.sha }}..."
+          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/frontend:${{ github.sha }} -n ${{ env.NAMESPACE }}
+          echo "Verifying rollout for frontend..."
+          if ! kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=180s; then
+            echo "::error::Rollout failed for frontend! Initiating automatic rollback..."
+            kubectl rollout undo deployment/frontend -n ${{ env.NAMESPACE }}
+            exit 1
+          fi
 
       - name: Post-Deployment Cluster State
         if: always()
