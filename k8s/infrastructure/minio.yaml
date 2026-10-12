@@ -28,16 +28,9 @@ spec:
       labels:
         app: minio
     spec:
-      initContainers:
-        - name: fix-permissions
-          image: busybox:latest
-          command: ["sh", "-c", "chmod -R 777 /data"]
-          volumeMounts:
-            - name: minio-storage
-              mountPath: /data
       containers:
         - name: minio
-          image: minio/minio:latest
+          image: soldevelo/minio:latest
           args:
             - server
             - /data

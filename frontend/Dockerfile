@@ -1,12 +1,25 @@
-FROM node:20-alpine AS build
+# Build Stage
+FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+
+# Install dependencies first (layer caching)
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy source and build
 COPY . .
 RUN npm run build
 
+# Production Runtime Stage
 FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /usr/share/nginx/html
+
+# Clean default nginx assets
+RUN rm -rf ./*
+
+# Copy built assets and custom nginx configuration
+COPY --from=builder /app/dist .
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
