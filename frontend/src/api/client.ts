@@ -1,13 +1,29 @@
 import { User, Project, ProjectFile, SandboxStatus, Subscription, Plan, UserProfile } from '../types';
 
-export const BASE_PATH = ((import.meta as any).env?.BASE_URL || '/projects/novabuild/').replace(/\/+$/, '');
+export const getBasePath = (): string => {
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/projects/novabuild')) {
+    return '/projects/novabuild';
+  }
+  const envBase = (import.meta as any).env?.BASE_URL || '/';
+  return envBase.replace(/\/+$/, '');
+};
+
+export const BASE_PATH = getBasePath();
 export const GATEWAY_BASE = `${BASE_PATH}/api/v1`;
 export const ACCOUNT_DIRECT = `${BASE_PATH}/api/v1`;
 export const CHAT_STREAM_URL = `${GATEWAY_BASE}/chat/stream`;
 
 export function getStoredUser(): User | null {
-  const raw = localStorage.getItem('novabuild_user');
-  return raw ? JSON.parse(raw) : null;
+  try {
+    const raw = localStorage.getItem('novabuild_user');
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse stored user:', e);
+    localStorage.removeItem('novabuild_user');
+    localStorage.removeItem('novabuild_token');
+    return null;
+  }
 }
 
 export function getAuthHeaders(): Record<string, string> {

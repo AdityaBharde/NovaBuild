@@ -89,8 +89,16 @@ export const App: React.FC = () => {
     );
   }
 
+  const getAppBasename = (): string => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/projects/novabuild')) {
+      return '/projects/novabuild';
+    }
+    const envBase = (import.meta as any).env?.BASE_URL || '/';
+    return envBase.replace(/\/+$/, '') || '/';
+  };
+
   return (
-    <BrowserRouter basename={(import.meta as any).env?.BASE_URL || '/projects/novabuild'}>
+    <BrowserRouter basename={getAppBasename()}>
       <Routes>
         {/* App Layout Route */}
         <Route
