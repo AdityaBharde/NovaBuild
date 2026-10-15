@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative ml-2" ref={projectSwitcherRef}>
             <button
               onClick={() => setProjectSwitcherOpen(!projectSwitcherOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-elevated border border-border/80 hover:border-border text-xs text-text-primary transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-elevated border border-border/80 hover:border-border text-xs text-text-primary transition-all duration-150 hover:scale-[1.02] active:scale-95 active:translate-y-0.5"
             >
               <FolderGit2 className="w-3.5 h-3.5 text-accent" />
               <span className="max-w-[120px] truncate">
@@ -151,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Create Project CTA Button */}
         <button
           onClick={onOpenNewProjectModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg shadow-sm transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg shadow-sm transition-all duration-150 hover:scale-[1.03] hover:shadow-accent/25 hover:shadow-md active:scale-95 active:translate-y-0.5"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Project</span>
@@ -161,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 p-1 pl-2 rounded-lg hover:bg-surface-elevated transition-colors border border-transparent hover:border-border"
+            className="flex items-center gap-2 p-1 pl-2 rounded-lg hover:bg-surface-elevated transition-all duration-150 border border-transparent hover:border-border hover:scale-105 active:scale-95 active:translate-y-0.5"
           >
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-accent to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
               {user.name.charAt(0).toUpperCase()}

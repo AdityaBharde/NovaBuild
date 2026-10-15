@@ -32,11 +32,12 @@ build/
 ### VS Code ###
 .vscode/
 
+### Environment and Script Files ###
 .env
 *.env
 *.ps1
 
-# Secrets & Credentials (NEVER COMMIT)
+### Secrets & Credentials (NEVER COMMIT) ###
 k8s/02-secrets.yaml
 k8s/*secret*.yaml
 *-secrets.yaml
@@ -44,13 +45,38 @@ secrets.yaml
 *.pem
 *.key
 
-# Build artifacts and temp files
+### Node & Frontend ###
+node_modules/
+**/node_modules/
+frontend/dist/
+dist/
+
+# Accidental root Node artifacts (ensures frontend/package.json remains unaffected)
+/package.json
+/package-lock.json
+
+### Maven Wrapper ###
+mvnw
+mvnw.cmd
+.mvn/
+
+### Build Artifacts and Logs ###
 BOOT-INF/
 **/BOOT-INF/
 .maven-cache/
 **/.maven-cache/
 workspace-contact-project/
-frontend/dist/
-frontend/node_modules/
 *.log
 *-cmd.txt
+
+### Local Context, Docs & Scratch Testing Files ###
+DEV_CONTEXT.md
+nova-build-postman-collection.json
+*.postman_collection.json
+test.http
+*.http
+k8s/ManagedCertificate.yaml
+
+### OS Files ###
+.DS_Store
+Thumbs.db

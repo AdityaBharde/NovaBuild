@@ -1,26 +1,138 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@import "tailwindcss";
+
+/* ==========================================================================
+   NovaBuild Theme — Tailwind CSS v4
+   ========================================================================== */
+
+@theme {
+  --color-background: #050506;
+  --color-text-primary: #f8f7ff;
+}
+
+/* ==========================================================================
+   Global Base Styles
+   ========================================================================== */
 
 @layer base {
+  html {
+    min-height: 100%;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
   body {
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+
     @apply bg-background text-text-primary antialiased;
+  }
+
+  #root {
+    min-height: 100vh;
+    overflow: visible;
   }
 }
 
+/* ==========================================================================
+   Custom Scrollbar
+   ========================================================================== */
+
 @layer utilities {
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(22px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes text-pop {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.82);
+      filter: blur(6px);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.04);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.45s ease both;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .page-enter {
+    animation: page-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .scroll-pop-word {
+    display: inline-block;
+    will-change: transform, opacity;
+  }
+
+  .scroll-pop {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+    filter: blur(4px);
+  }
+
+  .scroll-pop.is-popped {
+    animation: text-pop 0.7s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #2A2B33;
+    background: #2a2b33;
     border-radius: 4px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #3f414c;
   }
 }
+

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useOutlet } from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
+import { PageTransition } from '../common/PageTransition';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Modal } from '../common/Modal';
@@ -28,6 +30,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onLogout,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const outlet = useOutlet();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -80,7 +84,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         />
 
         <main className="flex-1 overflow-y-auto custom-scrollbar bg-background">
-          <Outlet />
+          {location.pathname.includes('/workspace') ? (
+            <div className="min-h-full">{outlet}</div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <PageTransition key={location.pathname} className="min-h-full">
+                {outlet}
+              </PageTransition>
+            </AnimatePresence>
+          )}
         </main>
       </div>
 

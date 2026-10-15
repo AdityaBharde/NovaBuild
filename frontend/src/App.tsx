@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
+
 import { User, Project, Subscription } from './types';
+
 import {
   getStoredUser,
   fetchProjects,
   getSubscription,
   logoutUser,
 } from './api/client';
+
 import { AuthScreen } from './components/auth/AuthScreen';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './components/dashboard/DashboardPage';
@@ -15,12 +25,17 @@ import { WorkspacePage } from './components/workspace/WorkspacePage';
 import { BillingPage } from './components/billing/BillingPage';
 import { UsagePage } from './components/usage/UsagePage';
 import { SettingsPage } from './components/settings/SettingsPage';
+import { LandingPage } from './components/LandingPage';
+import { PageTransition } from './components/common/PageTransition';
+import { ScrollPopObserver } from './components/common/ScrollPopObserver';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(getStoredUser());
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] =
+    useState<Subscription | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [activeProject, setActiveProject] =
+    useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -31,19 +46,23 @@ export const App: React.FC = () => {
 
   const loadInitialData = async () => {
     setIsLoading(true);
+
     try {
-      // 1. Fetch user projects
       const projs = await fetchProjects();
       setProjects(projs);
-      if (projs.length > 0 && !activeProject) {
-        setActiveProject(projs[0]);
-      }
 
-      // 2. Fetch authoritative subscription
+      setActiveProject((current) => {
+        if (current && projs.some((p) => p.id === current.id)) {
+          return current;
+        }
+
+        return projs.length > 0 ? projs[0] : null;
+      });
+
       const sub = await getSubscription();
       setSubscription(sub);
-    } catch (e) {
-      console.error('Error loading initial app data:', e);
+    } catch (error) {
+      console.error('Error loading initial app data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -64,80 +83,214 @@ export const App: React.FC = () => {
 
   const handleProjectUpdated = (updatedProject: Project) => {
     setProjects((prev) =>
-      prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
+      prev.map((project) =>
+        project.id === updatedProject.id ? updatedProject : project
+      )
     );
-    if (activeProject?.id === updatedProject.id) {
-      setActiveProject(updatedProject);
-    }
+
+    setActiveProject((current) =>
+      current?.id === updatedProject.id ? updatedProject : current
+    );
   };
 
   const handleProjectDeleted = (id: string | number) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    if (activeProject?.id === id) {
-      const remaining = projects.filter((p) => p.id !== id);
-      setActiveProject(remaining.length > 0 ? remaining[0] : null);
-    }
-  };
+    setProjects((prev) => {
+      const remaining = prev.filter((project) => project.id !== id);
 
-  if (!user) {
-    return (
-      <AuthScreen
-        onSuccess={(authenticatedUser) => {
-          setUser(authenticatedUser);
-        }}
-      />
-    );
-  }
+      setActiveProject((current) => {
+        if (current?.id !== id) {
+          return current;
+        }
 
-  const getAppBasename = (): string => {
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/projects/novabuild')) {
-      return '/projects/novabuild';
-    }
-    const envBase = (import.meta as any).env?.BASE_URL || '/';
-    return envBase.replace(/\/+$/, '') || '/';
+        return remaining.length > 0 ? remaining[0] : null;
+      });
+
+      return remaining;
+    });
   };
 
   return (
     <BrowserRouter basename={getAppBasename()}>
-      <Routes>
-        {/* App Layout Route */}
+      <AppRoutes
+        user={user}
+        setUser={setUser}
+        subscription={subscription}
+        setSubscription={setSubscription}
+        projects={projects}
+        activeProject={activeProject}
+        setActiveProject={setActiveProject}
+        isLoading={isLoading}
+        handleLogout={handleLogout}
+        handleProjectCreated={handleProjectCreated}
+        handleProjectUpdated={handleProjectUpdated}
+        handleProjectDeleted={handleProjectDeleted}
+        loadInitialData={loadInitialData}
+      />
+    </BrowserRouter>
+  );
+};
+
+const getAppBasename = (): string => {
+  if (
+    typeof window !== 'undefined' &&
+    window.location.pathname.startsWith('/projects/novabuild')
+  ) {
+    return '/projects/novabuild';
+  }
+
+  const envBase = import.meta.env.BASE_URL || '/';
+  return envBase.replace(/\/+$/, '') || '/';
+};
+
+const getTransitionKey = (pathname: string) => {
+  if (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/projects') ||
+    pathname.startsWith('/workspace') ||
+    pathname.startsWith('/billing') ||
+    pathname.startsWith('/usage') ||
+    pathname.startsWith('/settings')
+  ) {
+    return 'app-shell';
+  }
+
+  return pathname;
+};
+
+interface AppRoutesProps {
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  subscription: Subscription | null;
+  setSubscription: React.Dispatch<React.SetStateAction<Subscription | null>>;
+  projects: Project[];
+  activeProject: Project | null;
+  setActiveProject: React.Dispatch<React.SetStateAction<Project | null>>;
+  isLoading: boolean;
+  handleLogout: () => void;
+  handleProjectCreated: (newProject: Project) => void;
+  handleProjectUpdated: (updatedProject: Project) => void;
+  handleProjectDeleted: (id: string | number) => void;
+  loadInitialData: () => Promise<void>;
+}
+
+const AppRoutes: React.FC<AppRoutesProps> = ({
+  user,
+  setUser,
+  subscription,
+  setSubscription,
+  projects,
+  activeProject,
+  setActiveProject,
+  isLoading,
+  handleLogout,
+  handleProjectCreated,
+  handleProjectUpdated,
+  handleProjectDeleted,
+  loadInitialData,
+}) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
+
+  return (
+    <>
+      <ScrollPopObserver />
+      <AnimatePresence mode="wait">
+        <PageTransition key={getTransitionKey(location.pathname)}>
+        <Routes location={location}>
+        {/* Public landing page */}
+        <Route
+          path="/"
+          element={<LandingPage />}
+        />
+
+        {/* Login */}
+        <Route
+          path="/login"
+          element={
+            user ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <AuthScreen
+                onSuccess={(authenticatedUser) => {
+                  setUser(authenticatedUser);
+                }}
+              />
+            )
+          }
+        />
+
+        {/* Signup */}
+        <Route
+          path="/signup"
+          element={
+            user ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <AuthScreen
+                onSuccess={(authenticatedUser) => {
+                  setUser(authenticatedUser);
+                }}
+              />
+            )
+          }
+        />
+
+        {/* Legacy dashboard URL */}
+        <Route
+          path="/dashboard"
+          element={
+            user ? (
+              <Navigate to="/dashboard/home" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* Authenticated application */}
         <Route
           element={
-            <AppLayout
-              user={user}
-              subscription={subscription}
-              projects={projects}
-              activeProject={activeProject}
-              onSelectProject={setActiveProject}
-              onProjectCreated={handleProjectCreated}
-              onLogout={handleLogout}
-              onRefreshData={loadInitialData}
-            />
+            user ? (
+              <AppLayout
+                user={user}
+                subscription={subscription}
+                projects={projects}
+                activeProject={activeProject}
+                onSelectProject={setActiveProject}
+                onProjectCreated={handleProjectCreated}
+                onLogout={handleLogout}
+                onRefreshData={loadInitialData}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         >
-          {/* Dashboard / Overview */}
+          {/* Dashboard */}
           <Route
-            path="/"
+            path="/dashboard/home"
             element={
               <DashboardPage
-                user={user}
+                user={user!}
                 projects={projects}
                 subscription={subscription}
                 onSelectProject={setActiveProject}
                 onOpenNewProjectModal={() => {
-                  const btn = document.querySelector('header button');
-                  if (btn) (btn as HTMLElement).click();
+                  const button = document.querySelector('header button');
+
+                  if (button) {
+                    (button as HTMLElement).click();
+                  }
                 }}
                 isLoading={isLoading}
               />
             }
           />
-          <Route
-            path="/dashboard"
-            element={<Navigate to="/" replace />}
-          />
 
-          {/* Dedicated Projects Management */}
+          {/* Projects */}
           <Route
             path="/projects"
             element={
@@ -145,8 +298,11 @@ export const App: React.FC = () => {
                 projects={projects}
                 onSelectProject={setActiveProject}
                 onOpenNewProjectModal={() => {
-                  const btn = document.querySelector('header button');
-                  if (btn) (btn as HTMLElement).click();
+                  const button = document.querySelector('header button');
+
+                  if (button) {
+                    (button as HTMLElement).click();
+                  }
                 }}
                 onProjectUpdated={handleProjectUpdated}
                 onProjectDeleted={handleProjectDeleted}
@@ -155,7 +311,7 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* AI Coding Workspace */}
+          {/* AI coding workspace */}
           <Route
             path="/workspace/:projectId"
             element={
@@ -166,7 +322,7 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Stripe Billing & Subscriptions */}
+          {/* Billing and subscriptions */}
           <Route
             path="/billing"
             element={
@@ -177,7 +333,7 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Usage & Quotas */}
+          {/* Usage and quotas */}
           <Route
             path="/usage"
             element={
@@ -193,7 +349,7 @@ export const App: React.FC = () => {
             path="/settings"
             element={
               <SettingsPage
-                user={user}
+                user={user!}
                 subscription={subscription}
                 onUserUpdated={setUser}
                 onLogout={handleLogout}
@@ -201,11 +357,16 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Default authenticated page */}
+          <Route
+            path="*"
+            element={<Navigate to="/dashboard/home" replace />}
+          />
         </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+        </PageTransition>
+      </AnimatePresence>
+    </>
   );
 };
 
