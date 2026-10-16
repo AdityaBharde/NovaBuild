@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './WorkspacePage.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Project,
@@ -78,6 +79,35 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [showChat, setShowChat] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(248);
+  const [chatPanelWidth, setChatPanelWidth] = useState(360);
+  const resizeTarget = useRef<'files' | 'chat' | null>(null);
+
+  useEffect(() => {
+    const handlePointerMove = (event: MouseEvent) => {
+      if (!resizeTarget.current) return;
+      if (resizeTarget.current === 'files') {
+        setLeftPanelWidth(Math.min(360, Math.max(190, event.clientX - (document.querySelector('.novabuild-workspace')?.getBoundingClientRect().left || 0))));
+      } else {
+        setChatPanelWidth(Math.min(520, Math.max(300, window.innerWidth - event.clientX)));
+      }
+    };
+    const stopResize = () => { resizeTarget.current = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', stopResize);
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', stopResize);
+      stopResize();
+    };
+  }, []);
+
+  const beginResize = (target: 'files' | 'chat') => (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizeTarget.current = target;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   // File tree filter & create
   const [fileFilter, setFileFilter] = useState('');
@@ -637,7 +667,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-background font-sans text-text-primary overflow-hidden">
+    <div className="novabuild-workspace flex flex-col h-full w-full bg-background font-sans text-text-primary overflow-hidden">
       {/* Workspace Action Bar */}
       <div className="h-11 border-b border-border bg-surface flex items-center justify-between px-4 shrink-0 text-xs">
         {/* Left: Project & Breadcrumbs */}
@@ -746,10 +776,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       </div>
 
       {/* Main 3-Panel Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="workspace-panels flex-1 flex min-h-0 overflow-hidden">
         {/* PANEL 1: File Explorer */}
         {showFileTree && (
-          <aside className="w-60 border-r border-border bg-surface flex flex-col shrink-0">
+          <aside className="workspace-files-panel border-r border-border bg-surface flex flex-col shrink-0" style={{ width: leftPanelWidth }}>
             <div className="h-10 px-3 border-b border-border/70 flex items-center justify-between text-xs font-semibold text-text-secondary">
               <span className="uppercase tracking-wider text-[10px]">Files</span>
               <div className="flex items-center gap-1">
@@ -831,8 +861,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           </aside>
         )}
 
+        {showFileTree && <div className="workspace-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize file explorer" onMouseDown={beginResize('files')} />}
+
         {/* PANEL 2: Central Code Editor & Tabs */}
-        <div className="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
+        <div className="workspace-editor-panel flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
           {/* Tabs Bar */}
           <div className="h-9 border-b border-border bg-surface flex items-center px-1 overflow-x-auto custom-scrollbar shrink-0">
             {openTabs.map((tab) => {
@@ -931,9 +963,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           </div>
         </div>
 
+        {showChat && <div className="workspace-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize AI chat" onMouseDown={beginResize('chat')} />}
+
         {/* PANEL 3: AI Agent Chat */}
         {showChat && (
-          <aside className="w-80 border-l border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden">
+          <aside className="workspace-chat-panel border-l border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden" style={{ width: chatPanelWidth }}>
             <PromptPanel
               messages={messages}
               isStreaming={isStreaming}

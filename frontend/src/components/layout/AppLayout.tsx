@@ -101,9 +101,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onLogout={onLogout}
         />
 
-        <main className="relative flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+        <main className={`relative flex-1 min-h-0 bg-transparent ${location.pathname.includes('/workspace') ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
           {location.pathname.includes('/workspace') ? (
-            <div className="relative z-10 min-h-full">{outlet}</div>
+            <div className="relative z-10 h-full min-h-0">{outlet}</div>
           ) : (
             <AnimatePresence mode="wait">
               <PageTransition key={location.pathname} className="relative z-10 min-h-full">
