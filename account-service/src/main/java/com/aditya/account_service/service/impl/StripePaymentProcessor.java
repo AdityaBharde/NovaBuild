@@ -323,9 +323,6 @@ public class StripePaymentProcessor implements PaymentProcessor {
 
     private String extractSubscriptionId(Invoice invoice) {
         if (invoice == null) return null;
-        if (invoice.getSubscription() != null && !invoice.getSubscription().isEmpty()) {
-            return invoice.getSubscription();
-        }
         var parent = invoice.getParent();
         if (parent == null) return null;
 
