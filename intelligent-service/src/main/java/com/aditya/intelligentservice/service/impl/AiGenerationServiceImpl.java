@@ -254,6 +254,24 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                     extractAndPersistCodeBlocks(projectId, completeRawResponse.toString(), userMessage, persistedFiles, sink);
                 }
 
+                // Do not disguise an empty/failed provider response as a successful "Request processed." reply.
+                String extractedUserFacingText = !completeUserFacingText.toString().isBlank()
+                        ? completeUserFacingText.toString().trim()
+                        : llmResponseParser.extractUserFacingMessage(completeRawResponse.toString());
+                if (persistedFiles.isEmpty() && extractedUserFacingText.isBlank()) {
+                    log.error(
+                            "AI provider returned no user-facing content for project {}. rawResponseChars={}, iterations={}. Check provider/model errors and rate limits.",
+                            projectId,
+                            completeRawResponse.length(),
+                            iteration
+                    );
+                    sink.next(StreamResponse.error(
+                            "The AI provider returned an empty response. Check intelligent-service logs for OpenRouter errors (model/provider unavailable, rate limit, or API-key issue), then retry."
+                    ));
+                    sink.complete();
+                    return;
+                }
+
                 if (persistedFiles.isEmpty() && isFileGenerationRequest(userMessage)) {
                     log.error("File generation task completed with 0 files persisted for project {}", projectId);
                     sink.next(StreamResponse.error("No files were generated for this request. Please specify the desired implementation or try again."));
