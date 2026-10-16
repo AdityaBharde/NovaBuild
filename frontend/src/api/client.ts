@@ -390,16 +390,17 @@ export async function getPlans(): Promise<Plan[]> {
 }
 
 export async function createCheckoutSession(planId: number): Promise<{ checkoutUrl: string }> {
+  const returnUrl = typeof window !== 'undefined' ? window.location.origin : 'https://novabuild.adityabharde.dev';
   let res = await fetch(`${GATEWAY_BASE}/billing/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify({ planId }),
+    body: JSON.stringify({ planId, returnUrl }),
   });
   if (!res.ok) {
     res = await fetch(`${ACCOUNT_DIRECT}/api/payments/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify({ planId, returnUrl }),
     });
   }
   if (!res.ok) {
@@ -407,6 +408,28 @@ export async function createCheckoutSession(planId: number): Promise<{ checkoutU
     throw new Error(err || 'Failed to create Stripe checkout session');
   }
   return await res.json();
+}
+
+export async function syncCheckoutSession(sessionId?: string): Promise<Subscription | null> {
+  try {
+    const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
+    let res = await fetch(`${GATEWAY_BASE}/billing/sync${query}`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      res = await fetch(`${ACCOUNT_DIRECT}/api/payments/sync${query}`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() },
+      });
+    }
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn('Failed to sync checkout session with server:', e);
+  }
+  return await getSubscription();
 }
 
 export async function createCustomerPortalSession(): Promise<{ portalUrl: string }> {

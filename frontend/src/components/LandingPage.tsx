@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import './LandingPage.css';
 import { motion, type Variants } from "motion/react";
@@ -13,6 +13,45 @@ const revealUp: Variants = {
     opacity: 1,
     y: 0,
     transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+};
+
+const heroReveal: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.75,
+      delay: 1.4,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
+  },
+};
+
+const navReveal: Variants = {
+  hidden: { opacity: 0, y: -14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.75,
+      delay: 1.4,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
+  },
+};
+
+const previewReveal: Variants = {
+  hidden: { opacity: 0, y: 32 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.85,
+      delay: 2.3,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
   },
 };
 
@@ -34,6 +73,17 @@ const cardReveal: Variants = {
 
 export const LandingPage: React.FC = () => {
   const user = getStoredUser();
+
+  React.useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 40);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handlePreviewMouseMove = (
     event: React.MouseEvent<HTMLDivElement>
@@ -116,14 +166,26 @@ export const LandingPage: React.FC = () => {
       {/* Background star layers */}
       <div className="star-layer star-layer-one" aria-hidden="true" />
       <div className="star-layer star-layer-two" aria-hidden="true" />
+      <div className="star-layer star-layer-three" aria-hidden="true" />
 
       {/* Two rotating gradient circles */}
-      <div className="black-hole-scene" aria-hidden="true">
+      <motion.div
+        className="black-hole-scene"
+        aria-hidden="true"
+        initial={{ opacity: 0, scale: 0.82 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+      >
         <div className="big-circle" />
         <div className="small-circle" />
-      </div>
+      </motion.div>
       {/* Navigation */}
-      <nav className="landing-nav">
+      <motion.nav
+        className="landing-nav"
+        variants={navReveal}
+        initial="hidden"
+        animate="visible"
+      >
         <Link to="/" className="landing-logo" aria-label="NovaBuild home">
           <span className="logo-mark" aria-hidden="true">N</span>
           <span>NovaBuild</span>
@@ -156,26 +218,26 @@ export const LandingPage: React.FC = () => {
             </>
           )}
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero */}
       <motion.section
         className="hero-content"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
+        variants={heroReveal}
+        initial="hidden"
+        animate="visible"
       >
         <div className="hero-badge">
           YOUR AI-POWERED DEVELOPMENT WORKSPACE
         </div>
 
-        <PopText as="h1" className="hero-title" amount={0.2}>
+        <PopText as="h1" className="hero-title" amount={0.1}>
           Turn your ideas
           <br />
           into <span>working software.</span>
         </PopText>
 
-        <PopText as="p" className="hero-description" amount={0.2}>
+        <PopText as="p" className="hero-description" amount={0.1}>
           From your first prompt to a running application.
           Plan projects, generate code, and build in one
           unified development workspace.
@@ -207,10 +269,9 @@ export const LandingPage: React.FC = () => {
       <motion.section
         className="product-preview"
         aria-label="NovaBuild product preview"
-        variants={revealUp}
+        variants={previewReveal}
         initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.12 }}
+        animate="visible"
       >
         <div
           className="preview-interactive"

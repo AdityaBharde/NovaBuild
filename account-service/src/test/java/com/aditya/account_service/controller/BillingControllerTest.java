@@ -76,4 +76,17 @@ class BillingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.portalUrl").value("http://billing.stripe.com/session_456"));
     }
+
+    @Test
+    void testSyncCheckoutSession() throws Exception {
+        com.aditya.commonlib.dto.PlanDto plan = new com.aditya.commonlib.dto.PlanDto(1L, "Pro", 10, 1000, false, "10.00");
+        SubscriptionResponse response = new SubscriptionResponse(plan, "ACTIVE", java.time.Instant.now(), 0L);
+
+        Mockito.when(paymentProcessor.syncCheckoutSession("cs_123")).thenReturn(response);
+
+        mockMvc.perform(post("/api/payments/sync?sessionId=cs_123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plan.name").value("Pro"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
 }

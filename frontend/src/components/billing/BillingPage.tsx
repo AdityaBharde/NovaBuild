@@ -15,6 +15,7 @@ import {
 import { Subscription, Plan } from '../../types';
 import {
   getSubscription,
+  syncCheckoutSession,
   getPlans,
   createCheckoutSession,
   createCustomerPortalSession,
@@ -63,17 +64,37 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
     if (success === 'true' || sessionId) {
       setSuccessBanner(
-        'Payment successful! Your subscription is being activated by Stripe and our background webhooks.'
+        'Payment successful! Activating your upgraded subscription...'
       );
       searchParams.delete('success');
       searchParams.delete('session_id');
       setSearchParams(searchParams, { replace: true });
 
-      // Refresh subscription from authoritative backend
+      // Synchronize session and refresh subscription from authoritative backend
       try {
-        const freshSub = await getSubscription();
-        if (freshSub) {
+        const freshSub = await syncCheckoutSession(sessionId || undefined);
+        if (freshSub && freshSub.plan && freshSub.plan.id > 0) {
           onSubscriptionUpdated(freshSub);
+          setSuccessBanner(
+            `Payment successful! Your account is now upgraded to ${freshSub.plan.name}.`
+          );
+        } else {
+          // Poll up to 4 times (every 1.5s) in case webhooks or Stripe processing take a few moments
+          let attempts = 0;
+          const interval = setInterval(async () => {
+            attempts++;
+            const sub = await getSubscription();
+            if (sub && sub.plan && sub.plan.id > 0) {
+              onSubscriptionUpdated(sub);
+              setSuccessBanner(
+                `Payment successful! Your account is now upgraded to ${sub.plan.name}.`
+              );
+              clearInterval(interval);
+            } else if (attempts >= 4) {
+              clearInterval(interval);
+              if (sub) onSubscriptionUpdated(sub);
+            }
+          }, 1500);
         }
       } catch (e) {
         console.warn('Could not immediately refresh subscription:', e);
@@ -81,6 +102,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     } else if (canceled === 'true') {
       setCanceledBanner(true);
       searchParams.delete('canceled');
+      searchParams.delete('session_id');
       setSearchParams(searchParams, { replace: true });
     }
   };

@@ -59,6 +59,13 @@ public class BillingController {
         return ResponseEntity.ok(paymentProcessor.openCustomerPortal());
     }
 
+    @PostMapping({"/api/payments/sync", "/billing/sync", "/api/v1/billing/sync"})
+    public ResponseEntity<SubscriptionResponse> syncCheckoutSession(
+            @RequestParam(value = "sessionId", required = false) String sessionId
+    ) {
+        return ResponseEntity.ok(paymentProcessor.syncCheckoutSession(sessionId));
+    }
+
     @PostMapping("/webhooks/payment")
     public ResponseEntity<String> handlePaymentWebhooks(
             @RequestBody String payload,

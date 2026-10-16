@@ -25,4 +25,4 @@ data:
   AI_BASE_URL: "https://openrouter.ai/api"
   
   # Frontend Public URL
-  APP_FRONTEND_URL: "https://adityabharde.dev/projects/novabuild"
+  APP_FRONTEND_URL: "https://novabuild.adityabharde.dev"

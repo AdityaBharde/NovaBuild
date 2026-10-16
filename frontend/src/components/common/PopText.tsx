@@ -69,6 +69,7 @@ interface PopTextProps {
   className?: string;
   children: React.ReactNode;
   amount?: number;
+  delay?: number;
 }
 
 export const PopText: React.FC<PopTextProps> = ({
@@ -76,14 +77,27 @@ export const PopText: React.FC<PopTextProps> = ({
   className,
   children,
   amount = 0.4,
+  delay,
 }) => {
   const Tag = motion[as];
+
+  const variants = React.useMemo<Variants>(() => {
+    if (delay === undefined) {
+      return lineStagger;
+    }
+    return {
+      hidden: {},
+      visible: {
+        transition: { staggerChildren: 0.045, delayChildren: delay },
+      },
+    };
+  }, [delay]);
 
   return (
     <Tag
       className={className}
       data-pop-text=""
-      variants={lineStagger}
+      variants={variants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount, margin: '0px 0px -8% 0px' }}

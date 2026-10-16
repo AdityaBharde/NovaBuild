@@ -191,20 +191,28 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
   const location = useLocation();
 
   useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
 
+  const isLanding = location.pathname === '/';
   const isStarBg =
-    location.pathname === '/' ||
+    isLanding ||
     location.pathname.startsWith('/login') ||
     location.pathname.startsWith('/signup');
 
   return (
     <>
       {isStarBg && (
-        <div className="persistent-stars" aria-hidden="true">
+        <div
+          className={`persistent-stars ${isLanding ? 'persistent-stars-landing' : ''}`}
+          aria-hidden="true"
+        >
           <div className="star-layer star-layer-one" />
           <div className="star-layer star-layer-two" />
+          <div className="star-layer star-layer-three" />
         </div>
       )}
       <ScrollPopObserver />

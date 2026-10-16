@@ -50,21 +50,40 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    @Transactional
     public void activateSubscription(Long userId, Long planId, String subscriptionId, String customerId) {
-
-        boolean exists = subscriptionRepository.existsByStripeSubscriptionId(subscriptionId);
-        if (exists) return;
-
         User user = getUser(userId);
         Plan plan = getPlan(planId);
-        
+
+        var existingSubs = subscriptionRepository.findAllByUserId(userId);
+        for (Subscription existing : existingSubs) {
+            if (subscriptionId != null && subscriptionId.equals(existing.getStripeSubscriptionId())) {
+                existing.setPlan(plan);
+                existing.setStatus(SubscriptionStatus.ACTIVE);
+                if (existing.getCurrentPeriodEnd() == null) {
+                    existing.setCurrentPeriodStart(Instant.now());
+                    existing.setCurrentPeriodEnd(Instant.now().plusSeconds(30L * 24 * 3600));
+                }
+                subscriptionRepository.save(existing);
+                return;
+            } else if (existing.getStatus() == SubscriptionStatus.ACTIVE ||
+                       existing.getStatus() == SubscriptionStatus.TRIALING ||
+                       existing.getStatus() == SubscriptionStatus.INCOMPLETE) {
+                existing.setStatus(SubscriptionStatus.CANCELED);
+                subscriptionRepository.save(existing);
+            }
+        }
+
         Subscription subscription = Subscription.builder()
                 .user(user)
                 .plan(plan)
                 .stripeSubscriptionId(subscriptionId)
-                .status(SubscriptionStatus.INCOMPLETE)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now())
+                .currentPeriodEnd(Instant.now().plusSeconds(30L * 24 * 3600))
+                .cancelAtPeriodEnd(false)
                 .build();
-        
+
         subscriptionRepository.save(subscription);
     }
 

@@ -3,6 +3,7 @@ package com.aditya.account_service.service.impl;
 import com.aditya.account_service.dto.subscription.CheckoutRequest;
 import com.aditya.account_service.dto.subscription.CheckoutResponse;
 import com.aditya.account_service.dto.subscription.PortalResponse;
+import com.aditya.account_service.dto.subscription.SubscriptionResponse;
 import com.aditya.account_service.entity.Plan;
 import com.aditya.account_service.entity.User;
 import com.aditya.account_service.repository.PlanRepository;
@@ -35,8 +36,18 @@ public class StripePaymentProcessor implements PaymentProcessor {
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
 
-    @Value("${app.frontend.url}")
+    @Value("${app.frontend.url:https://novabuild.adityabharde.dev}")
     private String frontendUrl;
+
+    private String getBaseUrl(String overrideUrl) {
+        if (overrideUrl != null && !overrideUrl.isBlank()) {
+            return overrideUrl.replaceAll("/+$", "");
+        }
+        if (frontendUrl != null && !frontendUrl.isBlank()) {
+            return frontendUrl.replaceAll("/+$", "");
+        }
+        return "https://novabuild.adityabharde.dev";
+    }
 
     @Override
     public CheckoutResponse createCheckoutSessionUrl(CheckoutRequest request) {
@@ -46,6 +57,8 @@ public class StripePaymentProcessor implements PaymentProcessor {
         Long userId = authUtil.getCurrentUserId();
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new ResourceNotFoundException("user", userId.toString()));
+
+        String baseUrl = getBaseUrl(request.returnUrl());
 
         var params = SessionCreateParams.builder()
                 .addLineItem(
@@ -58,8 +71,8 @@ public class StripePaymentProcessor implements PaymentProcessor {
                                         .build())
                                 .build()
                 )
-                .setSuccessUrl(frontendUrl + "/success.html?session_id={CHECKOUT_SESSION_ID}")
-                .setCancelUrl(frontendUrl + "/cancel.html")
+                .setSuccessUrl(baseUrl + "/billing?success=true&session_id={CHECKOUT_SESSION_ID}")
+                .setCancelUrl(baseUrl + "/billing?canceled=true")
                 .putMetadata("user_id", userId.toString())
                 .putMetadata("plan_id", plan.getId().toString());
 
@@ -87,11 +100,13 @@ public class StripePaymentProcessor implements PaymentProcessor {
             throw new BadRequestException("User does not have a Stripe Customer Id, UserId:"+userId);
         }
 
+        String baseUrl = getBaseUrl(null);
+
         try {
             var portalSession = com.stripe.model.billingportal.Session.create(
                     com.stripe.param.billingportal.SessionCreateParams.builder()
                             .setCustomer(stripeCustomerId)
-                            .setReturnUrl(frontendUrl)
+                            .setReturnUrl(baseUrl + "/billing")
                             .build()
             );
 
@@ -99,6 +114,59 @@ public class StripePaymentProcessor implements PaymentProcessor {
         } catch (StripeException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public SubscriptionResponse syncCheckoutSession(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return subscriptionService.getCurrentSubscription();
+        }
+
+        try {
+            Session session = Session.retrieve(sessionId);
+            if (session != null && ("paid".equalsIgnoreCase(session.getPaymentStatus()) || "complete".equalsIgnoreCase(session.getStatus()))) {
+                Map<String, String> metadata = session.getMetadata();
+                if (metadata != null && metadata.containsKey("user_id") && metadata.containsKey("plan_id")) {
+                    Long userId = Long.parseLong(metadata.get("user_id"));
+                    Long planId = Long.parseLong(metadata.get("plan_id"));
+                    String subscriptionId = session.getSubscription();
+                    String customerId = session.getCustomer();
+
+                    User user = getUser(userId);
+                    if (user.getStripeCustomerId() == null && customerId != null) {
+                        user.setStripeCustomerId(customerId);
+                        userRepository.save(user);
+                    }
+
+                    subscriptionService.activateSubscription(userId, planId, subscriptionId, customerId);
+
+                    if (subscriptionId != null && !subscriptionId.isBlank()) {
+                        try {
+                            Subscription stripeSub = Subscription.retrieve(subscriptionId);
+                            if (stripeSub != null && stripeSub.getItems() != null && !stripeSub.getItems().getData().isEmpty()) {
+                                var item = stripeSub.getItems().getData().get(0);
+                                Instant periodStart = toInstant(item.getCurrentPeriodStart());
+                                Instant periodEnd = toInstant(item.getCurrentPeriodEnd());
+                                SubscriptionStatus status = mapStripeStatusToEnum(stripeSub.getStatus());
+                                if (status == null || status == SubscriptionStatus.INCOMPLETE) {
+                                    status = SubscriptionStatus.ACTIVE;
+                                }
+                                subscriptionService.updateSubscription(
+                                        subscriptionId, status, periodStart, periodEnd,
+                                        stripeSub.getCancelAtPeriodEnd(), planId
+                                );
+                            }
+                        } catch (Exception subEx) {
+                            log.warn("Could not retrieve Stripe subscription {}: {}", subscriptionId, subEx.getMessage());
+                        }
+                    }
+                }
+            }
+        } catch (StripeException e) {
+            log.error("Failed to sync checkout session {}: {}", sessionId, e.getMessage());
+        }
+
+        return subscriptionService.getCurrentSubscription();
     }
 
     @Override
@@ -128,12 +196,33 @@ public class StripePaymentProcessor implements PaymentProcessor {
         String customerId = session.getCustomer();
         
         User user = getUser(userId);
-        if(user.getStripeCustomerId() == null) {
+        if(user.getStripeCustomerId() == null && customerId != null) {
             user.setStripeCustomerId(customerId);
             userRepository.save(user);
         }
 
         subscriptionService.activateSubscription(userId, planId, subscriptionId, customerId);
+
+        if (subscriptionId != null && !subscriptionId.isBlank()) {
+            try {
+                Subscription stripeSub = Subscription.retrieve(subscriptionId);
+                if (stripeSub != null && stripeSub.getItems() != null && !stripeSub.getItems().getData().isEmpty()) {
+                    var item = stripeSub.getItems().getData().get(0);
+                    Instant periodStart = toInstant(item.getCurrentPeriodStart());
+                    Instant periodEnd = toInstant(item.getCurrentPeriodEnd());
+                    SubscriptionStatus status = mapStripeStatusToEnum(stripeSub.getStatus());
+                    if (status == null || status == SubscriptionStatus.INCOMPLETE) {
+                        status = SubscriptionStatus.ACTIVE;
+                    }
+                    subscriptionService.updateSubscription(
+                            subscriptionId, status, periodStart, periodEnd,
+                            stripeSub.getCancelAtPeriodEnd(), planId
+                    );
+                }
+            } catch (Exception e) {
+                log.warn("Could not retrieve stripe subscription in handleCheckoutSessionCompleted: {}", e.getMessage());
+            }
+        }
     }
 
     private void handleCustomerSubscriptionUpdated(Subscription subscription) {
@@ -233,6 +322,10 @@ public class StripePaymentProcessor implements PaymentProcessor {
     }
 
     private String extractSubscriptionId(Invoice invoice) {
+        if (invoice == null) return null;
+        if (invoice.getSubscription() != null && !invoice.getSubscription().isEmpty()) {
+            return invoice.getSubscription();
+        }
         var parent = invoice.getParent();
         if (parent == null) return null;
 
