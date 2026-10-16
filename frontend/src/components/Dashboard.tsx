@@ -49,9 +49,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="w-64 bg-[#0c0c10] border-r border-[#1f1e26] flex flex-col">
         <div className="h-14 flex items-center px-4 border-b border-[#1f1e26] shrink-0">
           <div className="flex items-center gap-2.5 font-bold tracking-tight text-white">
-            <div className="w-7 h-7 rounded-lg bg-[#8053f5] flex items-center justify-center text-white shadow-[0_0_12px_rgba(128,83,245,0.4)]">
-              <Sparkles className="w-4 h-4" />
-            </div>
+            <img
+              src="/vite.svg"
+              alt="NovaBuild"
+              className="w-7 h-7 object-contain"
+            />
             <span>Nova<span className="text-[#a78bfa]">Build</span></span>
           </div>
         </div>
@@ -115,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <button
                   type="submit"
                   disabled={isCreating || !newProjectName.trim()}
-                  className="bg-gradient-to-r from-[#8053f5] to-[#6d28d9] hover:from-[#8b5cf6] hover:to-[#7c3aed] text-white font-semibold py-2 px-3.5 rounded-xl text-xs transition-all flex items-center gap-1.5 disabled:opacity-50 shadow-[0_2px_10px_rgba(109,40,217,0.35)]"
+                  className="bg-[#7950e8] hover:bg-[#8965f0] text-white font-semibold py-2 px-3.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {isCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                   New Project
@@ -136,9 +138,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onClick={() => onSelectProject(project)}
                     className="flex flex-col items-start p-5 bg-[#0c0c10]/85 border border-[#1f1e26] rounded-2xl hover:border-[#7950e8]/50 hover:bg-[#121217] hover:shadow-[0_0_24px_rgba(121,80,232,0.12)] transition-all text-left group"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-[#20172f] border border-[#3b2b5d] flex items-center justify-center mb-4 group-hover:scale-105 group-hover:border-[#7950e8] group-hover:text-white transition-all text-[#c4b5fd]">
-                      <Layers className="w-4 h-4" />
-                    </div>
                     <h3 className="text-sm font-semibold text-white mb-1 truncate w-full group-hover:text-[#c4b5fd] transition-colors">{project.name}</h3>
                     <p className="text-xs text-[#a1a1aa] line-clamp-2">
                       {project.description || 'No description provided.'}

@@ -78,7 +78,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   };
 
   return (
-    <div className="relative z-10 flex h-screen w-screen overflow-hidden bg-[#050506]/85 backdrop-blur-[2px] font-sans text-text-primary antialiased">
+    <div className="relative z-10 flex h-screen w-screen overflow-hidden bg-[#0f1015]/90 backdrop-blur-[2px] font-sans text-text-primary antialiased">
       {/* Persistent Left Sidebar */}
       <Sidebar
         user={user}
@@ -86,6 +86,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         activeProjectId={activeProject?.id}
+        onLogout={onLogout}
       />
 
       {/* Main App Container */}
@@ -101,11 +102,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         />
 
         <main className="relative flex-1 overflow-y-auto custom-scrollbar bg-transparent">
-          {/* Subtle cosmic purple ambient glow at the top */}
-          <div
-            className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(121,80,232,0.12),transparent_70%)] z-0"
-            aria-hidden="true"
-          />
           {location.pathname.includes('/workspace') ? (
             <div className="relative z-10 min-h-full">{outlet}</div>
           ) : (
@@ -177,7 +173,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <button
               type="submit"
               disabled={isCreating || !projectName.trim()}
-              className="px-4 py-2 text-xs font-semibold bg-gradient-to-r from-[#8053f5] to-[#6d28d9] hover:from-[#8b5cf6] hover:to-[#7c3aed] text-white rounded-xl flex items-center gap-2 shadow-[0_2px_12px_rgba(109,40,217,0.35)] hover:shadow-[0_4px_18px_rgba(109,40,217,0.55)] transition-all disabled:opacity-50"
+              className="px-4 py-2 text-xs font-semibold bg-[#7950e8] hover:bg-[#8965f0] text-white rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               {isCreating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Create & Launch Workspace

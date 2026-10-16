@@ -129,26 +129,22 @@
 }
 
 .logo-mark {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 29px;
   height: 29px;
   border-radius: 8px;
-  background: #8053f5;
-  color: white;
-  font-size: 17px;
-  box-shadow: 0 0 12px rgba(128, 83, 245, 0.35);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  object-fit: contain;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
 }
 
 .landing-logo:hover .logo-mark {
   transform: rotate(-6deg) scale(1.08);
-  box-shadow: 0 0 18px rgba(128, 83, 245, 0.6);
+  filter: drop-shadow(0 0 12px rgba(121, 80, 232, 0.6));
 }
 
 .landing-logo:active .logo-mark {
   transform: rotate(4deg) scale(0.9);
-  box-shadow: 0 0 8px rgba(128, 83, 245, 0.4);
+  filter: drop-shadow(0 0 6px rgba(121, 80, 232, 0.4));
 }
 
 .nav-links,

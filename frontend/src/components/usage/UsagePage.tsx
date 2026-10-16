@@ -1,13 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
-  FolderGit2,
   Zap,
-  Layers,
   ArrowRight,
-  ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import { Project, Subscription } from '../../types';
 import { Badge } from '../common/Badge';
@@ -57,8 +52,7 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
         <div className="p-6 rounded-xl bg-surface border border-border flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
-              <span className="font-semibold flex items-center gap-1.5 text-text-primary">
-                <FolderGit2 className="w-4 h-4 text-accent" />
+              <span className="font-semibold text-text-primary">
                 Active Workspaces
               </span>
               <Badge variant="outline" size="sm">
@@ -94,8 +88,7 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
         <div className="p-6 rounded-xl bg-surface border border-border flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
-              <span className="font-semibold flex items-center gap-1.5 text-text-primary">
-                <Activity className="w-4 h-4 text-accent" />
+              <span className="font-semibold text-text-primary">
                 Daily AI Capacity
               </span>
               <Badge variant={plan?.unlimitedAi ? 'violet' : 'outline'} size="sm">
@@ -118,7 +111,7 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
             <span className="text-[11px] text-text-secondary">
               Status: 100% Health
             </span>
-            <span className="text-[11px] text-emerald-400 font-medium">
+            <span className="text-[11px] text-[#c4b5fd] font-medium">
               Zero Queuing
             </span>
           </div>
@@ -128,8 +121,7 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
         <div className="p-6 rounded-xl bg-surface border border-border flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
-              <span className="font-semibold flex items-center gap-1.5 text-text-primary">
-                <Layers className="w-4 h-4 text-accent" />
+              <span className="font-semibold text-text-primary">
                 Container Sandboxes
               </span>
               <Badge variant="outline" size="sm">
@@ -177,12 +169,10 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-text-secondary">
-          <div className="p-3 rounded-lg bg-surface-elevated border border-border/60 flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="p-3 rounded-lg bg-surface-elevated border border-border/60">
             <span>Automatic daily quota reset at 00:00 UTC</span>
           </div>
-          <div className="p-3 rounded-lg bg-surface-elevated border border-border/60 flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-accent shrink-0" />
+          <div className="p-3 rounded-lg bg-surface-elevated border border-border/60">
             <span>Streaming LLM generation with incremental parsing</span>
           </div>
         </div>

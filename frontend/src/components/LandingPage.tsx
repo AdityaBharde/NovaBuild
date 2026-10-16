@@ -187,7 +187,7 @@ export const LandingPage: React.FC = () => {
         animate="visible"
       >
         <Link to="/" className="landing-logo" aria-label="NovaBuild home">
-          <span className="logo-mark" aria-hidden="true">N</span>
+          <img src="/vite.svg" alt="NovaBuild" className="logo-mark" width="28" height="28" />
           <span>NovaBuild</span>
         </Link>
 
@@ -294,7 +294,10 @@ export const LandingPage: React.FC = () => {
 
           <div className="preview-body">
             <aside className="preview-sidebar">
-              <div className="preview-brand">N <span>NovaBuild</span></div>
+              <div className="preview-brand">
+                <img src="/vite.svg" alt="NovaBuild" className="w-4 h-4 inline-block mr-1.5 object-contain" />
+                <span>NovaBuild</span>
+              </div>
               <p className="preview-label">WORKSPACE</p>
               <div className="preview-nav-item active"><span>Overview</span></div>
               <div className="preview-nav-item"><span>Projects</span></div>
@@ -525,7 +528,7 @@ export const LandingPage: React.FC = () => {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
       >
         <Link to="/" className="landing-logo">
-          <span className="logo-mark" aria-hidden="true">N</span>
+          <img src="/vite.svg" alt="NovaBuild" className="logo-mark" width="28" height="28" />
           <span>NovaBuild</span>
         </Link>
 

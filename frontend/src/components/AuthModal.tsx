@@ -50,8 +50,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center space-x-2 text-pink-500 font-bold text-xl mb-4">
-          <Sparkles className="w-6 h-6" />
+        <div className="flex items-center space-x-2.5 text-white font-bold text-xl mb-4">
+          <img
+            src="/vite.svg"
+            alt="NovaBuild"
+            className="w-6 h-6 object-contain"
+          />
           <span>{isRegister ? 'Create NovaBuild Account' : 'Welcome to NovaBuild'}</span>
         </div>
 

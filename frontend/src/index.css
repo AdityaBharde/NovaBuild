@@ -6,13 +6,13 @@
    ========================================================================== */
 
 @theme {
-  --color-background: #050506;
-  --color-surface: #0c0c10;
-  --color-surface-elevated: #15141c;
-  --color-surface-card: #0e0d14;
-  --color-border: #1f1e26;
-  --color-border-subtle: #181720;
-  --color-border-hover: #3b2b5d;
+  --color-background: #0f1015;
+  --color-surface: #171821;
+  --color-surface-elevated: #1f202b;
+  --color-surface-card: #14151e;
+  --color-border: #262734;
+  --color-border-subtle: #1e1f29;
+  --color-border-hover: #453b66;
   --color-text-primary: #f8f7ff;
   --color-text-secondary: #a1a1aa;
   --color-text-muted: #71717f;
@@ -20,8 +20,8 @@
   --color-accent-hover: #8965f0;
   --color-accent-light: #c4b5fd;
   --color-accent-muted: #a78bfa;
-  --color-accent-subtle: #20172f;
-  --color-accent-border: #3b2b5d;
+  --color-accent-subtle: #241c38;
+  --color-accent-border: #443468;
   --color-success: #4ade80;
   --color-warning: #fbbf24;
   --color-error: #f87171;
@@ -38,7 +38,7 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background-color: #050506;
+  background-color: #0f1015;
 }
 
 .persistent-stars.persistent-stars-landing {

@@ -188,9 +188,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
         </div>
       ) : sortedProjects.length === 0 ? (
         <div className="p-12 rounded-xl bg-surface border border-dashed border-border text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-surface-elevated flex items-center justify-center mx-auto text-text-secondary">
-            <FolderGit2 className="w-5 h-5" />
-          </div>
           <h3 className="text-sm font-semibold text-text-primary">
             {searchQuery ? 'No matching projects found' : 'No projects yet'}
           </h3>
@@ -224,11 +221,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                       onSelectProject(proj);
                       navigate(`/workspace/${proj.id}`);
                     }}
-                    className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+                    className="cursor-pointer flex-1 min-w-0"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-surface-elevated border border-border/80 flex items-center justify-center text-accent shrink-0">
-                      <Code2 className="w-4 h-4" />
-                    </div>
                     <h3 className="font-semibold text-sm text-text-primary group-hover:text-accent transition-colors truncate">
                       {proj.name}
                     </h3>
@@ -328,9 +322,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
               className="p-4 hover:bg-surface-elevated/40 transition-colors flex items-center justify-between gap-4 cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center text-accent shrink-0">
-                  <Code2 className="w-4 h-4" />
-                </div>
                 <div className="min-w-0">
                   <h3 className="font-semibold text-xs text-text-primary hover:text-accent truncate">
                     {proj.name}

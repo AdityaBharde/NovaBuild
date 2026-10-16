@@ -29,11 +29,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="h-14 bg-[#12141a] border-b border-[#242731] px-4 flex items-center justify-between select-none">
       {/* Brand & Project Selector */}
       <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 text-pink-500 font-bold text-lg tracking-tight">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <span className="text-white">Nova<span className="text-pink-500">Build</span></span>
+        <div className="flex items-center space-x-2 text-white font-bold text-lg tracking-tight">
+          <img
+            src="/vite.svg"
+            alt="NovaBuild"
+            className="w-7 h-7 object-contain"
+          />
+          <span className="text-white">Nova<span className="text-[#a78bfa]">Build</span></span>
         </div>
 
         <div className="h-4 w-[1px] bg-[#292c38]" />
