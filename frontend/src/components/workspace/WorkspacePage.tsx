@@ -776,10 +776,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       </div>
 
       {/* Main 3-Panel Content Area */}
-      <div className="workspace-panels flex-1 flex min-h-0 overflow-hidden">
+      <div className="workspace-panels flex-1 flex min-h-0 h-full overflow-hidden">
         {/* PANEL 1: File Explorer */}
         {showFileTree && (
-          <aside className="workspace-files-panel border-r border-border bg-surface flex flex-col shrink-0" style={{ width: leftPanelWidth }}>
+          <aside className="workspace-files-panel border-r border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden" style={{ width: leftPanelWidth }}>
             <div className="h-10 px-3 border-b border-border/70 flex items-center justify-between text-xs font-semibold text-text-secondary">
               <span className="uppercase tracking-wider text-[10px]">Files</span>
               <div className="flex items-center gap-1">
@@ -864,7 +864,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         {showFileTree && <div className="workspace-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize file explorer" onMouseDown={beginResize('files')} />}
 
         {/* PANEL 2: Central Code Editor & Tabs */}
-        <div className="workspace-editor-panel flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
+        <div className="workspace-editor-panel flex-1 flex flex-col min-w-0 h-full bg-background relative overflow-hidden">
           {/* Tabs Bar */}
           <div className="h-9 border-b border-border bg-surface flex items-center px-1 overflow-x-auto custom-scrollbar shrink-0">
             {openTabs.map((tab) => {

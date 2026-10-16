@@ -9,8 +9,6 @@ import {
   CreditCard,
   Settings,
   ChevronLeft,
-  MessageSquare,
-  ExternalLink,
   Search,
   X,
   LogOut,
@@ -38,23 +36,6 @@ interface SidebarProps {
   activeProjectId?: string | number | null;
   onLogout?: () => void;
 }
-
-// ============================================================================
-// Base Component: BadgeWithDot (Purple theme, zero green)
-// ============================================================================
-
-export const BadgeWithDot: React.FC<{
-  children: React.ReactNode;
-  size?: 'sm' | 'md';
-  className?: string;
-}> = ({ children, size = 'sm', className = '' }) => (
-  <span
-    className={`inline-flex items-center gap-1.5 font-medium rounded-full px-2 py-0.5 text-[10px] bg-[#20172f] text-[#c4b5fd] border border-[#3b2b5d] shrink-0 ${className}`}
-  >
-    <span className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] animate-pulse" />
-    {children}
-  </span>
-);
 
 // ============================================================================
 // Base Component: FeaturedCardProgressBar
@@ -209,21 +190,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  // Footer navigation items
-  const footerItems: NavItemType[] = [
-    {
-      label: 'Support',
-      href: '/settings',
-      icon: MessageSquare,
-      badge: <BadgeWithDot size="sm">Online</BadgeWithDot>,
-    },
-    {
-      label: 'Documentation',
-      href: '/',
-      icon: ExternalLink,
-    },
-  ];
-
   // Search filtering
   const query = searchQuery.trim().toLowerCase();
 
@@ -261,13 +227,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         (typeof item.badge === 'string' && item.badge.toLowerCase().includes(query))
       )
     : navItems;
-
-  const filteredFooterItems = query
-    ? footerItems.filter((item) =>
-        item.label.toLowerCase().includes(query) ||
-        item.href.toLowerCase().includes(query)
-      )
-    : footerItems;
 
   const renderBadge = (badge: React.ReactNode) => {
     if (!badge) return null;
@@ -488,58 +447,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Footer Navigation Items */}
-      <div className="p-2 border-t border-[var(--border-color)] space-y-0.5 shrink-0">
-        {filteredFooterItems.map((item) => {
-          const isActive = location.pathname.startsWith(item.href) && item.href !== '/';
-
-          return (
-            <NavLink
-              key={`${item.label}-${item.href}`}
-              to={item.href}
-              onClick={() => {
-                if (searchQuery) setSearchQuery('');
-              }}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group ${
-                isActive
-                  ? 'bg-[var(--bg-card)] text-white font-semibold'
-                  : 'text-[#a1a1aa] hover:text-white hover:bg-[var(--bg-card)] border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                <item.icon className="w-4 h-4 shrink-0 text-[#71717f] group-hover:text-white transition-colors" />
-                <motion.span
-                  initial={false}
-                  animate={{
-                    opacity: collapsed ? 0 : 1,
-                    width: collapsed ? 0 : 'auto',
-                  }}
-                  transition={{ duration: 0.18 }}
-                  className="overflow-hidden whitespace-nowrap text-left truncate"
-                >
-                  {item.label}
-                </motion.span>
-              </div>
-
-              {!collapsed && (
-                <motion.div
-                  initial={false}
-                  animate={{
-                    opacity: collapsed ? 0 : 1,
-                    width: collapsed ? 0 : 'auto',
-                  }}
-                  transition={{ duration: 0.18 }}
-                  className="overflow-hidden whitespace-nowrap"
-                >
-                  {item.badge && renderBadge(item.badge)}
-                </motion.div>
-              )}
-            </NavLink>
-          );
-        })}
-      </div>
 
       {/* User Footer Profile */}
       <div className="p-3 border-t border-[var(--border-color)] flex items-center justify-between shrink-0 bg-[var(--bg-sidebar)]">
