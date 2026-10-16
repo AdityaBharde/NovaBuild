@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import './LandingPage.css';
 import { motion, type Variants } from "motion/react";
@@ -166,7 +166,6 @@ export const LandingPage: React.FC = () => {
         transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
       >
         <div className="hero-badge">
-          <span className="status-dot" />
           YOUR AI-POWERED DEVELOPMENT WORKSPACE
         </div>
 

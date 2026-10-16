@@ -1,19 +1,30 @@
-import React, { useState } from 'react';
-import { Sparkles, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { User } from '../../types';
-import { loginUser, registerUser } from '../../api/client';
+import { loginUser, registerUser, getBasePath } from '../../api/client';
+import './AuthScreen.css';
 
 interface AuthScreenProps {
   onSuccess: (user: User) => void;
+  mode?: 'login' | 'signup';
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
-  const [isRegister, setIsRegister] = useState(false);
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, mode }) => {
+  const location = useLocation();
+  const isSignup = mode ? mode === 'signup' : location.pathname.endsWith('/signup');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Clear errors when navigating between login and signup
+  useEffect(() => {
+    setError(null);
+  }, [isSignup, location.pathname]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +32,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     setError(null);
 
     try {
-      if (isRegister) {
-        if (!name.trim()) throw new Error('Please enter your name');
+      if (isSignup) {
+        if (!name.trim()) {
+          throw new Error('Please enter your name');
+        }
         const user = await registerUser(email.trim(), password, name.trim());
         onSuccess(user);
       } else {
@@ -36,108 +49,147 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     }
   };
 
-  return (
-    <div className="min-h-screen w-screen flex items-center justify-center p-4 bg-background font-sans text-text-primary antialiased relative overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+  const viteLogo = `${getBasePath()}/vite.svg`.replace(/^\/\//, '/');
 
-      <div className="w-full max-w-sm p-8 rounded-2xl bg-surface border border-border/80 shadow-2xl relative z-10 animate-slide-up">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-md shadow-accent/20">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-text-primary">
-            Nova<span className="text-accent">Build</span>
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        {/* Brand / Logo */}
+        <div className="auth-header">
+          <Link to="/" className="auth-logo-link" aria-label="NovaBuild home" title="Back to home">
+            <img
+              src={viteLogo}
+              alt="NovaBuild"
+              className="auth-logo-icon"
+              width="36"
+              height="36"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/vite.svg';
+              }}
+            />
+          </Link>
+          <h1 className="auth-title">
+            {isSignup ? 'Create your account.' : 'Welcome back.'}
           </h1>
-          <p className="text-xs text-text-secondary mt-1">
-            {isRegister
-              ? 'Create your developer account'
-              : 'Sign in to access your AI workspaces'}
+          <p className="auth-subtitle">
+            {isSignup ? 'Get started with NovaBuild.' : 'Sign in to continue.'}
           </p>
         </div>
 
+        {/* Error notification */}
         {error && (
-          <div className="p-3 text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg mb-4 leading-relaxed">
-            {error}
+          <div className="auth-error" role="alert">
+            <AlertCircle className="auth-error-icon" />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegister && (
-            <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1">
+        {/* Authentication Form */}
+        <form onSubmit={handleSubmit} className="auth-form" noValidate={false}>
+          {isSignup && (
+            <div className="auth-field">
+              <label htmlFor="auth-name" className="auth-label">
                 Full Name
               </label>
-              <input
-                type="text"
-                required
-                placeholder="Ada Lovelace"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:border-accent transition-colors"
-              />
+              <div className="auth-input-wrapper">
+                <input
+                  id="auth-name"
+                  type="text"
+                  required
+                  autoFocus={isSignup}
+                  placeholder="Ada Lovelace"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="auth-input"
+                  autoComplete="name"
+                />
+              </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">
+          <div className="auth-field">
+            <label htmlFor="auth-email" className="auth-label">
               Email Address
             </label>
-            <input
-              type="email"
-              required
-              autoFocus
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:border-accent transition-colors"
-            />
+            <div className="auth-input-wrapper">
+              <input
+                id="auth-email"
+                type="email"
+                required
+                autoFocus={!isSignup}
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="auth-input"
+                autoComplete="email"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">
+          <div className="auth-field">
+            <label htmlFor="auth-password" className="auth-label">
               Password
             </label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:border-accent transition-colors"
-            />
+            <div className="auth-input-wrapper">
+              <input
+                id="auth-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="auth-input auth-input-password"
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="auth-password-toggle"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="auth-toggle-icon" />
+                ) : (
+                  <Eye className="auth-toggle-icon" />
+                )}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover text-white text-xs font-semibold rounded-lg shadow-sm shadow-accent/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2"
+            className="auth-submit-btn"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
               <>
-                <span>{isRegister ? 'Create Account' : 'Sign In'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <Loader2 className="auth-spinner" />
+                <span>{isSignup ? 'Creating account...' : 'Signing in...'}</span>
               </>
+            ) : (
+              <span>{isSignup ? 'Create account' : 'Sign in'}</span>
             )}
           </button>
         </form>
 
-        <div className="mt-6 pt-4 border-t border-border/50 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegister(!isRegister);
-              setError(null);
-            }}
-            className="text-xs text-text-secondary hover:text-accent transition-colors font-medium"
-          >
-            {isRegister
-              ? 'Already have an account? Sign in'
-              : "Don't have an account? Sign up"}
-          </button>
+        {/* Footer switch link */}
+        <div className="auth-footer">
+          {isSignup ? (
+            <>
+              Already have an account?
+              <Link to="/login" className="auth-switch-link">
+                Sign in
+              </Link>
+            </>
+          ) : (
+            <>
+              Don't have an account?
+              <Link to="/signup" className="auth-switch-link">
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>

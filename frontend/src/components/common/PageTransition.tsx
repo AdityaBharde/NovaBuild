@@ -13,7 +13,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   className,
 }) => (
   <motion.div
-    className={`w-full ${className || ''}`}
+    className={`w-full relative z-[1] ${className || ''}`}
     initial={{ opacity: 0, y: 32, scale: 0.97, filter: 'blur(10px)' }}
     animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
     exit={{ opacity: 0, y: -24, scale: 0.98, filter: 'blur(8px)' }}

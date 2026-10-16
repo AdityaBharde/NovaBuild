@@ -194,8 +194,19 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
 
+  const isStarBg =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/signup');
+
   return (
     <>
+      {isStarBg && (
+        <div className="persistent-stars" aria-hidden="true">
+          <div className="star-layer star-layer-one" />
+          <div className="star-layer star-layer-two" />
+        </div>
+      )}
       <ScrollPopObserver />
       <AnimatePresence mode="wait">
         <PageTransition key={getTransitionKey(location.pathname)}>
@@ -214,6 +225,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
               <Navigate to="/dashboard" replace />
             ) : (
               <AuthScreen
+                mode="login"
                 onSuccess={(authenticatedUser) => {
                   setUser(authenticatedUser);
                 }}
@@ -230,6 +242,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
               <Navigate to="/dashboard" replace />
             ) : (
               <AuthScreen
+                mode="signup"
                 onSuccess={(authenticatedUser) => {
                   setUser(authenticatedUser);
                 }}
