@@ -23,11 +23,11 @@ spring:
 
   ai:
     openai:
-      base-url: https://openrouter.ai/api
+      base-url: ${AI_BASE_URL:https://openrouter.ai/api}
       api-key: ${AI_API_KEY}
       chat:
         options:
-          model: nvidia/nemotron-3-ultra-550b-a55b:free
+          model: ${AI_MODEL:openrouter/free}
           temperature: 0
 
 
