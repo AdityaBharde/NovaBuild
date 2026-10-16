@@ -10,14 +10,13 @@ import {
   Plus,
   RotateCw,
   Telescope,
-  Terminal,
   ChevronDown,
-  ChevronRight,
   FileCode,
   ExternalLink,
   AlertCircle,
 } from 'lucide-react';
 import { ChatMessage, ExecutionStep } from '../types';
+import './PromptPanel.css';
 
 export interface PromptPanelProps {
   messages: ChatMessage[];
@@ -158,136 +157,88 @@ function MarkdownContent({ content }: { content: string }) {
   );
 }
 
-interface StepRowProps {
-  step: ExecutionStep;
-  streaming: boolean;
+function StepStatusIcon({ status }: { status?: 'running' | 'error' }) {
+  if (status === 'running') return <LoaderCircle className="animate-spin" />;
+  if (status === 'error') return <AlertCircle />;
+  return <CircleCheck />;
 }
 
-function StepRow({ step, streaming }: StepRowProps) {
-  const isRunning = step.status === 'running' || (streaming && step.status !== 'completed' && step.status !== 'error');
-  const [open, setOpen] = useState<boolean>(isRunning);
+function TraceStep({ step, streaming }: { step: ExecutionStep; streaming: boolean }) {
+  const running = step.status === 'running' || (streaming && step.status !== 'completed' && step.status !== 'error');
+  const failed = step.status === 'error';
+  const status = running ? 'running' : failed ? 'error' : undefined;
+  const [open, setOpen] = useState(running);
 
-  // Auto-expand while running, collapse when done
   useEffect(() => {
-    if (isRunning) {
-      setOpen(true);
-    }
-  }, [isRunning]);
+    if (running) setOpen(true);
+  }, [running]);
 
-  if (step.type === 'planning' || step.type === 'status') {
-    return (
-      <div className="rounded-lg border border-border/70 bg-surface-elevated/40 overflow-hidden text-xs">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-elevated/70 transition-colors"
-        >
-          <div className="flex items-center gap-2 truncate">
-            {isRunning ? (
-              <LoaderCircle className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />
-            ) : step.status === 'error' ? (
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            ) : (
-              <CircleCheck className="w-3.5 h-3.5 text-accent shrink-0" />
-            )}
-            <span className="font-medium text-text-primary truncate">
-              {isRunning ? 'Thinking...' : (step.title || 'Thought')}
-            </span>
-          </div>
-          {step.detail && (
-            <div className="text-text-secondary shrink-0 pl-1">
-              {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            </div>
-          )}
-        </button>
+  const title = step.type === 'tool'
+    ? running ? `Running ${step.title}` : failed ? `Failed: ${step.title}` : step.title.replace(/^Ran /, '')
+    : step.title || (step.type === 'planning' ? 'Planning next steps' : 'Working');
 
-        {open && step.detail && (
-          <div className="px-3 pb-2.5 pt-1 border-t border-border/40 text-[11px] text-text-secondary font-mono whitespace-pre-wrap leading-relaxed">
-            {step.detail}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (step.type === 'tool') {
-    const isError = step.status === 'error';
-    const titleText = isRunning
-      ? `Running ${step.title}`
-      : isError
-      ? `Failed to run ${step.title}`
-      : `Ran ${step.title}`;
-
-    return (
-      <div className="rounded-lg border border-border/70 bg-surface-elevated/40 overflow-hidden text-xs">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-elevated/70 transition-colors"
-        >
-          <div className="flex items-center gap-2 truncate">
-            {isRunning ? (
-              <LoaderCircle className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />
-            ) : isError ? (
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            ) : (
-              <Terminal className="w-3.5 h-3.5 text-accent shrink-0" />
-            )}
-            <span className="font-medium text-text-primary truncate">
-              {titleText}
-            </span>
-          </div>
-          {step.detail && (
-            <div className="text-text-secondary shrink-0 pl-1">
-              {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            </div>
-          )}
-        </button>
-
-        {open && step.detail && (
-          <div className="px-3 pb-2.5 pt-1 border-t border-border/40">
-            <div className="rounded-lg bg-background border border-border/60 p-2 font-mono text-[11px] text-text-secondary overflow-x-auto max-h-48 custom-scrollbar">
-              <code>{step.detail}</code>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Default / File step
   return (
-    <div className="rounded-lg border border-border/70 bg-surface-elevated/40 overflow-hidden text-xs">
+    <div className={`nb-trace-step ${status ? `is-${status}` : ''}`}>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-elevated/70 transition-colors"
+        className="nb-trace-step-trigger"
+        onClick={() => step.detail && setOpen((value) => !value)}
+        aria-expanded={step.detail ? open : undefined}
+        disabled={!step.detail}
       >
-        <div className="flex items-center gap-2 truncate">
-          {isRunning ? (
-            <LoaderCircle className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />
-          ) : step.status === 'error' ? (
-            <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-          ) : (
-            <FileCode className="w-3.5 h-3.5 text-accent shrink-0" />
-          )}
-          <span className="font-medium text-text-primary truncate">
-            {step.title}
-          </span>
-        </div>
-        {step.detail && (
-          <div className="text-text-secondary shrink-0 pl-1">
-            {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-          </div>
-        )}
+        <span className="nb-trace-icon"><StepStatusIcon status={status} /></span>
+        <span className="nb-trace-step-title">{title}</span>
+        {step.detail && <ChevronDown className={`nb-trace-chevron ${open ? 'is-open' : ''}`} />}
       </button>
-
-      {open && step.detail && (
-        <div className="px-3 pb-2.5 pt-1 border-t border-border/40 text-[11px] text-text-secondary font-mono whitespace-pre-wrap leading-relaxed">
-          {step.detail}
+      {step.detail && open && (
+        <div className="nb-trace-detail">
+          {step.type === 'tool' ? (
+            <pre>{step.detail}</pre>
+          ) : (
+            <p>{step.detail}</p>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function ChainOfThought({
+  steps,
+  streaming,
+  answering,
+}: {
+  steps: ExecutionStep[];
+  streaming: boolean;
+  answering: boolean;
+}) {
+  const [open, setOpen] = useState<boolean | undefined>(undefined);
+  const running = streaming && !answering;
+  const failed = steps.filter((step) => step.status === 'error').length;
+  const status = running ? 'running' : failed > 0 ? 'error' : undefined;
+
+  return (
+    <section className="nb-trace" aria-label="Agent activity">
+      <button
+        type="button"
+        className={`nb-trace-summary ${status ? `is-${status}` : ''}`}
+        onClick={() => setOpen((value) => !(value ?? running))}
+        aria-expanded={open ?? running}
+      >
+        <span className="nb-trace-icon"><StepStatusIcon status={status} /></span>
+        <span className="nb-trace-summary-title">
+          {running ? 'Working through your request' : `Completed ${steps.length} ${steps.length === 1 ? 'step' : 'steps'}${failed ? ` · ${failed} failed` : ''}`}
+        </span>
+        <ChevronDown className={`nb-trace-chevron ${(open ?? running) ? 'is-open' : ''}`} />
+      </button>
+      {(open ?? running) && (
+        <div className="nb-trace-steps">
+          {steps.map((step) => (
+            <TraceStep key={step.id} step={step} streaming={streaming} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -344,20 +295,23 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface">
-      {/* 1. TOP HEADER: New Thread + Reset */}
-      <div className="flex items-start justify-between gap-4 p-4 pb-3 border-b border-border shrink-0">
-        <div className="flex flex-col gap-0.5">
-          <div className="font-semibold text-sm text-text-primary">New Thread</div>
-          <div className="text-xs text-text-secondary">
-            Ask the agent to change your code.
+    <div className="nb-chat flex flex-col h-full bg-surface">
+      {/* Conversation header */}
+      <div className="nb-chat-header flex items-center justify-between gap-3 px-4 py-3 border-b border-border shrink-0">
+        <div className="flex flex-col gap-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="font-semibold text-sm text-text-primary">Agent</div>
+            <span className="nb-chat-status"><span /> {isStreaming ? 'Working' : 'Ready'}</span>
+          </div>
+          <div className="text-xs text-text-secondary truncate">
+            {messages.length ? 'Conversation' : 'Describe what you want to build.'}
           </div>
         </div>
         <button
           type="button"
           onClick={handleReset}
           disabled={isStreaming}
-          className="p-1.5 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="nb-chat-reset p-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           title="Reset conversation"
           aria-label="Reset conversation"
         >
@@ -366,18 +320,20 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       </div>
 
       {/* 2. MESSAGES STREAM */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      <div className="nb-chat-transcript flex-1 min-h-0 overflow-y-auto px-4 py-5 space-y-5 custom-scrollbar">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full px-6 text-center select-none">
-            <div className="w-12 h-12 rounded-2xl bg-surface-elevated border border-border flex items-center justify-center text-text-secondary mb-3 shadow-inner">
-              <MessageCircleDashed className="w-6 h-6 text-accent" />
+            <div className="nb-chat-empty-icon"><MessageCircleDashed className="w-5 h-5" /></div>
+            <div className="text-base font-semibold text-text-primary mb-1">
+              What are we building?
             </div>
-            <div className="text-sm font-semibold text-text-primary mb-1">
-              What should we build?
-            </div>
-            <p className="text-xs text-text-secondary max-w-xs leading-relaxed">
-              The agent can read your code, run commands and make changes. Press send to start.
+            <p className="text-xs text-text-secondary max-w-[250px] leading-relaxed">
+              Describe a feature, ask a question, or tell the agent what to change. Your project context stays connected.
             </p>
+            <div className="nb-chat-suggestions">
+              <button type="button" onClick={() => setPrompt('Explain the structure of this project.')}>Explain this project</button>
+              <button type="button" onClick={() => setPrompt('Find and fix the most important bug in this project.')}>Find a bug</button>
+            </div>
           </div>
         ) : (
           messages.map((msg, i) => {
@@ -397,7 +353,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   transition={{ duration: 0.18 }}
                   className="flex justify-end"
                 >
-                  <div className="max-w-[85%] rounded-2xl bg-surface-elevated border border-border/80 px-3.5 py-2.5 text-xs text-text-primary shadow-sm leading-relaxed whitespace-pre-wrap break-words">
+                  <div className="nb-chat-user-bubble max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words">
                     {msg.content}
                   </div>
                 </motion.div>
@@ -410,20 +366,20 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.18 }}
-                className="w-full flex flex-col space-y-2.5 max-w-[95%]"
+                className="nb-chat-assistant w-full flex flex-col space-y-3"
               >
                 {/* 1. EXECUTION STEPS / TRACE */}
                 {steps.length > 0 && (
-                  <div className="flex flex-col gap-1.5 w-full">
-                    {steps.map((step) => (
-                      <StepRow key={step.id} step={step} streaming={isStreamingThis} />
-                    ))}
-                  </div>
+                  <ChainOfThought
+                    steps={steps}
+                    streaming={isStreamingThis}
+                    answering={displayContent.length > 0}
+                  />
                 )}
 
                 {/* 2. ACTIVE PROGRESS FALLBACK */}
                 {isStreamingThis && !steps.some((s) => s.status === 'running') && (
-                  <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-surface-elevated/50 border border-border/50 text-xs text-text-secondary">
+                  <div className="nb-chat-progress flex items-center gap-2 py-2 px-3 rounded-xl text-xs text-text-secondary">
                     <LoaderCircle className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />
                     <span className="truncate">{currentStatus || 'Working on your request...'}</span>
                   </div>
@@ -431,9 +387,9 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
 
                 {/* 3. CREATED / MODIFIED FILES PILLS */}
                 {hasFiles && (
-                  <div className="p-2.5 rounded-xl bg-surface-elevated/70 border border-border/80 flex flex-wrap items-center gap-1.5">
+                  <div className="nb-chat-artifacts p-2.5 rounded-xl border flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary pl-1">
-                      Files Created:
+                      Changed files
                     </span>
                     {msg.filesCreated?.map((filePath) => (
                       <button
@@ -453,16 +409,16 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
 
                 {/* 4. ASSISTANT TEXT / MARKDOWN */}
                 {(displayContent || (!steps.length && isStreamingThis)) && (
-                  <div className="rounded-2xl p-3 bg-surface-elevated/40 border border-border/60 text-text-primary leading-relaxed shadow-sm">
+                  <div className="nb-chat-response text-text-primary leading-relaxed">
                     {displayContent ? (
                       <MarkdownContent content={displayContent} />
                     ) : (
-                      <span className="text-text-secondary text-xs italic">
-                        {currentStatus || 'Generating response...'}
+                      <span className="nb-chat-thinking text-xs">
+                        {currentStatus || 'Preparing a response…'}
                       </span>
                     )}
                     {isStreamingThis && (
-                      <span className="inline-block w-1.5 h-3.5 ml-1 bg-accent animate-pulse align-middle" />
+                      <span className="nb-chat-cursor inline-block w-1.5 h-4 ml-1 align-middle" />
                     )}
                   </div>
                 )}
@@ -474,9 +430,9 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       </div>
 
       {/* 3. INPUT FORM AREA */}
-      <div className="p-4 pt-0 shrink-0">
+      <div className="nb-chat-composer-wrap px-3 pb-3 pt-2 shrink-0">
         <form ref={formRef} onSubmit={handleSubmit} className="w-full">
-          <div className="rounded-2xl border border-border bg-surface-elevated focus-within:border-accent focus-within:ring-1 focus-within:ring-accent transition-all p-2.5 flex flex-col gap-2 shadow-sm">
+          <div className="nb-chat-composer rounded-2xl border border-border bg-surface-elevated focus-within:border-accent transition-all p-3 flex flex-col gap-2">
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -484,7 +440,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               placeholder="Ask the agent to change your code..."
               aria-label="Message"
               rows={2}
-              className="w-full bg-transparent resize-none outline-none text-xs text-text-primary placeholder:text-text-secondary min-h-[48px] max-h-36 custom-scrollbar leading-relaxed"
+              className="nb-chat-textarea w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-secondary min-h-[66px] max-h-40 custom-scrollbar leading-relaxed"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -500,7 +456,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   type="button"
                   aria-label="Add context"
                   onClick={() => setIsContextOpen(!isContextOpen)}
-                  className="p-1.5 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center"
+                  className="nb-chat-add p-2 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center"
                   title="Add context"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -578,7 +534,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               <button
                 type="submit"
                 disabled={!canSend}
-                className="w-7 h-7 rounded-lg bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm ml-auto"
+                className="nb-chat-send w-8 h-8 rounded-xl bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
                 title="Send message"
               >
                 <ArrowUp className="w-4 h-4" />
