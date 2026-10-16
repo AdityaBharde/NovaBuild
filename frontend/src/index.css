@@ -49,39 +49,29 @@
 
 .persistent-stars .star-layer-one,
 .landing-page .star-layer-one {
-  opacity: 0.75;
+  opacity: 0.85;
   background-image:
-    radial-gradient(0.6px 0.6px at 20px 25px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 85px 15px, #ffffff 98%, transparent),
-    radial-gradient(0.6px 0.6px at 145px 75px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 195px 35px, #ffffff 98%, transparent),
-    radial-gradient(0.7px 0.7px at 65px 135px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 120px 180px, #ffffff 98%, transparent),
-    radial-gradient(0.6px 0.6px at 230px 115px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 170px 165px, #ffffff 98%, transparent),
-    radial-gradient(0.7px 0.7px at 265px 50px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 250px 195px, #ffffff 98%, transparent);
-  background-size: 280px 210px;
+    radial-gradient(0.8px 0.8px at 60px 70px, #ffffff 98%, transparent),
+    radial-gradient(0.8px 0.8px at 280px 45px, #c4b5fd 98%, transparent),
+    radial-gradient(0.8px 0.8px at 420px 160px, #a78bfa 98%, transparent),
+    radial-gradient(0.8px 0.8px at 140px 260px, #ffffff 98%, transparent),
+    radial-gradient(0.8px 0.8px at 360px 320px, #c4b5fd 98%, transparent);
+  background-size: 500px 380px;
   animation:
     starDriftOne 34s linear infinite,
-    starTwinkleOne 2.6s ease-in-out infinite;
+    starTwinkleOne 2.8s ease-in-out infinite;
 }
 
 .persistent-stars .star-layer-two,
 .landing-page .star-layer-two {
-  opacity: 0.65;
+  opacity: 0.8;
   background-image:
-    radial-gradient(0.6px 0.6px at 35px 55px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 105px 100px, #ffffff 98%, transparent),
-    radial-gradient(0.7px 0.7px at 165px 30px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 225px 85px, #ffffff 98%, transparent),
-    radial-gradient(0.8px 0.8px at 295px 40px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 75px 210px, #ffffff 98%, transparent),
-    radial-gradient(0.6px 0.6px at 145px 160px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 215px 240px, #ffffff 98%, transparent),
-    radial-gradient(0.7px 0.7px at 325px 180px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 265px 260px, #c4b5fd 98%, transparent);
-  background-size: 340px 250px;
+    radial-gradient(0.8px 0.8px at 100px 90px, #a78bfa 98%, transparent),
+    radial-gradient(0.8px 0.8px at 380px 70px, #ffffff 98%, transparent),
+    radial-gradient(0.8px 0.8px at 540px 230px, #c4b5fd 98%, transparent),
+    radial-gradient(0.8px 0.8px at 210px 370px, #a78bfa 98%, transparent),
+    radial-gradient(0.8px 0.8px at 470px 410px, #ffffff 98%, transparent);
+  background-size: 620px 480px;
   animation:
     starDriftTwo 46s linear infinite,
     starTwinkleTwo 4.0s ease-in-out infinite;
@@ -89,19 +79,13 @@
 
 .persistent-stars .star-layer-three,
 .landing-page .star-layer-three {
-  opacity: 0.6;
+  opacity: 0.85;
   background-image:
-    radial-gradient(0.7px 0.7px at 50px 40px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 125px 120px, #ffffff 98%, transparent),
-    radial-gradient(0.8px 0.8px at 205px 20px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 295px 105px, #ffffff 98%, transparent),
-    radial-gradient(0.6px 0.6px at 370px 55px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 85px 245px, #ffffff 98%, transparent),
-    radial-gradient(0.8px 0.8px at 170px 195px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 260px 175px, #ffffff 98%, transparent),
-    radial-gradient(0.7px 0.7px at 335px 280px, #ffffff 98%, transparent),
-    radial-gradient(0.5px 0.5px at 25px 290px, #ffffff 98%, transparent);
-  background-size: 400px 300px;
+    radial-gradient(0.8px 0.8px at 120px 110px, #c4b5fd 98%, transparent),
+    radial-gradient(0.8px 0.8px at 520px 130px, #ffffff 98%, transparent),
+    radial-gradient(0.8px 0.8px at 260px 420px, #a78bfa 98%, transparent),
+    radial-gradient(0.8px 0.8px at 640px 460px, #c4b5fd 98%, transparent);
+  background-size: 740px 560px;
   animation:
     starDriftThree 58s linear infinite,
     starTwinkleThree 3.2s ease-in-out infinite;
@@ -112,7 +96,7 @@
     background-position: 0 0;
   }
   100% {
-    background-position: 280px 210px;
+    background-position: 500px 380px;
   }
 }
 
@@ -121,7 +105,7 @@
     background-position: 0 0;
   }
   100% {
-    background-position: -340px 250px;
+    background-position: -620px 480px;
   }
 }
 
@@ -130,60 +114,60 @@
     background-position: 0 0;
   }
   100% {
-    background-position: 400px -300px;
+    background-position: 740px -560px;
   }
 }
 
 @keyframes starTwinkleOne {
   0%, 100% {
-    opacity: 0.5;
-    filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.35));
+    opacity: 0.65;
+    filter: drop-shadow(0 0 0.8px rgba(255, 255, 255, 0.45));
   }
-  28% {
+  30% {
     opacity: 0.95;
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 1.8px rgba(255, 255, 255, 0.5));
+    filter: drop-shadow(0 0 1.2px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 2px rgba(196, 181, 253, 0.5));
   }
-  60% {
-    opacity: 0.4;
-    filter: drop-shadow(0 0 0.3px rgba(255, 255, 255, 0.25));
+  65% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.3));
   }
-  84% {
-    opacity: 0.82;
-    filter: drop-shadow(0 0 0.8px rgba(255, 255, 255, 0.7));
+  85% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.75));
   }
 }
 
 @keyframes starTwinkleTwo {
   0%, 100% {
-    opacity: 0.45;
-    filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.3));
+    opacity: 0.6;
+    filter: drop-shadow(0 0 0.8px rgba(196, 181, 253, 0.4));
   }
-  38% {
-    opacity: 0.9;
-    filter: drop-shadow(0 0 1.2px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 2px rgba(196, 181, 253, 0.4));
+  42% {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 1.4px rgba(196, 181, 253, 0.85)) drop-shadow(0 0 2.2px rgba(167, 139, 250, 0.5));
   }
-  72% {
-    opacity: 0.35;
-    filter: drop-shadow(0 0 0.4px rgba(255, 255, 255, 0.2));
+  75% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 0.5px rgba(196, 181, 253, 0.3));
   }
 }
 
 @keyframes starTwinkleThree {
   0%, 100% {
-    opacity: 0.4;
-    filter: drop-shadow(0 0 0.4px rgba(255, 255, 255, 0.3));
+    opacity: 0.55;
+    filter: drop-shadow(0 0 0.8px rgba(167, 139, 250, 0.4));
   }
-  22% {
-    opacity: 0.75;
-    filter: drop-shadow(0 0 0.8px rgba(255, 255, 255, 0.6));
+  24% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 1.2px rgba(167, 139, 250, 0.75));
   }
-  52% {
+  54% {
     opacity: 1;
-    filter: drop-shadow(0 0 1.4px #ffffff) drop-shadow(0 0 2.2px rgba(255, 255, 255, 0.6));
+    filter: drop-shadow(0 0 1.6px rgba(167, 139, 250, 0.9)) drop-shadow(0 0 2.6px rgba(223, 122, 254, 0.6));
   }
-  78% {
-    opacity: 0.48;
-    filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.35));
+  80% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 0.6px rgba(167, 139, 250, 0.35));
   }
 }
 
