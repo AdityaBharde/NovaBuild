@@ -7,7 +7,24 @@
 
 @theme {
   --color-background: #050506;
+  --color-surface: #0c0c10;
+  --color-surface-elevated: #15141c;
+  --color-surface-card: #0e0d14;
+  --color-border: #1f1e26;
+  --color-border-subtle: #181720;
+  --color-border-hover: #3b2b5d;
   --color-text-primary: #f8f7ff;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717f;
+  --color-accent: #7950e8;
+  --color-accent-hover: #8965f0;
+  --color-accent-light: #c4b5fd;
+  --color-accent-muted: #a78bfa;
+  --color-accent-subtle: #20172f;
+  --color-accent-border: #3b2b5d;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
 }
 
 /* ==========================================================================
@@ -290,8 +307,8 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -299,12 +316,53 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #2a2b33;
+    background: #1f1e26;
     border-radius: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #3f414c;
+    background: #34313e;
+  }
+
+  /* Cosmic Card Utilities */
+  .cosmic-card {
+    background-color: rgba(12, 12, 16, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid #1f1e26;
+    border-radius: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .cosmic-card:hover {
+    border-color: rgba(167, 139, 250, 0.35);
+    box-shadow: 0 0 24px rgba(121, 80, 232, 0.12);
+  }
+
+  .cosmic-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #20172f;
+    border: 1px solid #3b2b5d;
+    color: #c4b5fd;
+    border-radius: 10px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .cosmic-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background-color: #20172f;
+    border: 1px solid #3b2b5d;
+    border-radius: 9999px;
+    color: #c4b5fd;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    box-shadow: 0 0 12px rgba(121, 80, 232, 0.2);
   }
 }
 

@@ -198,10 +198,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
   }, [location.pathname]);
 
   const isLanding = location.pathname === '/';
-  const isStarBg =
-    isLanding ||
-    location.pathname.startsWith('/login') ||
-    location.pathname.startsWith('/signup');
+  const isStarBg = true;
 
   return (
     <>

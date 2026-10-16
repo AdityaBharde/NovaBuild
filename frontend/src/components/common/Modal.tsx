@@ -56,20 +56,20 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`relative w-full ${maxWidthStyles} bg-surface border border-border rounded-xl shadow-2xl p-6 text-text-primary z-10 animate-slide-up`}
+        className={`relative w-full ${maxWidthStyles} bg-[#0c0c10] border border-[#1f1e26] rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(121,80,232,0.1)] p-6 text-[#f8f7ff] z-10 animate-slide-up`}
       >
-        <div className="flex items-start justify-between pb-3 border-b border-border/50">
+        <div className="flex items-start justify-between pb-3.5 border-b border-[#1f1e26]">
           <div>
-            <h3 id="modal-title" className="text-base font-semibold text-text-primary">
+            <h3 id="modal-title" className="text-base font-bold text-white tracking-tight">
               {title}
             </h3>
             {description && (
-              <p className="text-xs text-text-secondary mt-0.5">{description}</p>
+              <p className="text-xs text-[#a1a1aa] mt-0.5">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-text-secondary hover:text-text-primary rounded-lg p-1 hover:bg-surface-elevated transition-colors"
+            className="text-[#a1a1aa] hover:text-white rounded-lg p-1.5 hover:bg-[#181624] border border-transparent hover:border-[#24242d] transition-all"
           >
             <X className="w-4 h-4" />
           </button>
