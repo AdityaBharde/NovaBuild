@@ -18,7 +18,6 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
   const plan = subscription?.plan;
   const isPaid = !!plan && plan.id > 0;
   const maxProjects = plan?.maxProjects || 3;
-  const maxTokens = plan?.maxTokensPerDay || 50000;
   const maxPreviews = plan?.maxPreviews || 1;
 
   const projectPct = Math.min(100, Math.round((projects.length / maxProjects) * 100));
@@ -97,23 +96,24 @@ export const UsagePage: React.FC<UsagePageProps> = ({ projects, subscription }) 
             </div>
 
             <div className="text-3xl font-bold text-text-primary mb-1">
-              {(maxTokens / 1000).toLocaleString()}k
-              <span className="text-xs font-normal text-text-secondary ml-1">
-                tokens/day
-              </span>
+              {plan?.unlimitedAi ? 'Unlimited' : 'Optimal'}
             </div>
             <p className="text-xs text-text-secondary">
-              Allocated daily for code generation and multi-file editing.
+              Dedicated compute allowance for code generation and multi-file editing.
             </p>
           </div>
 
-          <div className="mt-6 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-text-secondary">
-              Status: 100% Health
-            </span>
-            <span className="text-[11px] text-[#c4b5fd] font-medium">
-              Zero Queuing
-            </span>
+          <div className="mt-6 space-y-2">
+            <div className="w-full h-2 bg-surface-elevated rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-300"
+                style={{ width: plan?.unlimitedAi ? '100%' : '75%' }}
+              />
+            </div>
+            <div className="flex justify-between text-[11px] text-text-secondary">
+              <span>{plan?.unlimitedAi ? 'Uncapped iterations' : 'Allowance available'}</span>
+              <span className="text-[#c4b5fd] font-medium">100% Health</span>
+            </div>
           </div>
         </div>
 

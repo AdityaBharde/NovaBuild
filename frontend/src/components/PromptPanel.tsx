@@ -95,9 +95,9 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       case 'tool':
         return <Terminal className="w-3.5 h-3.5 text-sky-400 shrink-0" />;
       case 'file':
-        return <FileCode className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
+        return <FileCode className="w-3.5 h-3.5 text-[#a78bfa] shrink-0" />;
       default:
-        return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
+        return <CheckCircle2 className="w-3.5 h-3.5 text-[#a78bfa] shrink-0" />;
     }
   };
 
@@ -154,7 +154,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                             {isStreamingThis ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />
                             ) : (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#a78bfa] shrink-0" />
                             )}
                             <span className="font-semibold text-text-primary truncate">
                               {isStreamingThis

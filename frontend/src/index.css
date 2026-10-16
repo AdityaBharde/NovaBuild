@@ -2,17 +2,60 @@
 @import "tailwindcss";
 
 /* ==========================================================================
+   NovaBuild Multi-Theme System
+   ========================================================================== */
+
+:root, [data-theme="dark"] {
+  --bg-app: #0f1015;
+  --bg-sidebar: #12131c;
+  --bg-header: #12131c;
+  --bg-card: #161722;
+  --bg-input: #1c1d29;
+  --bg-hover: #222333;
+  --border-color: #262734;
+  --border-subtle: #1e1f29;
+  --border-hover: #3b2b5d;
+  --star-bg: #0f1015;
+}
+
+[data-theme="oled"] {
+  --bg-app: #000000;
+  --bg-sidebar: #050507;
+  --bg-header: #050507;
+  --bg-card: #0a0a0d;
+  --bg-input: #121217;
+  --bg-hover: #17171e;
+  --border-color: #1e1e24;
+  --border-subtle: #16161c;
+  --border-hover: #7950e8;
+  --star-bg: #000000;
+}
+
+[data-theme="midnight"] {
+  --bg-app: #0b0f19;
+  --bg-sidebar: #0e1422;
+  --bg-header: #0e1422;
+  --bg-card: #131b2e;
+  --bg-input: #1a253e;
+  --bg-hover: #202d4b;
+  --border-color: #1f2c4a;
+  --border-subtle: #162035;
+  --border-hover: #7950e8;
+  --star-bg: #0b0f19;
+}
+
+/* ==========================================================================
    NovaBuild Theme — Tailwind CSS v4
    ========================================================================== */
 
 @theme {
-  --color-background: #0f1015;
-  --color-surface: #171821;
-  --color-surface-elevated: #1f202b;
-  --color-surface-card: #14151e;
-  --color-border: #262734;
-  --color-border-subtle: #1e1f29;
-  --color-border-hover: #453b66;
+  --color-background: var(--bg-app);
+  --color-surface: var(--bg-card);
+  --color-surface-elevated: var(--bg-input);
+  --color-surface-card: var(--bg-card);
+  --color-border: var(--border-color);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-hover: var(--border-hover);
   --color-text-primary: #f8f7ff;
   --color-text-secondary: #a1a1aa;
   --color-text-muted: #71717f;
@@ -38,7 +81,8 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background-color: #0f1015;
+  background-color: var(--star-bg, #0f1015);
+  transition: background-color 0.25s ease;
 }
 
 .persistent-stars.persistent-stars-landing {

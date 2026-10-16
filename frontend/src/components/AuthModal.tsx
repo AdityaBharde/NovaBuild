@@ -78,7 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Aditya Bharde"
-                className="w-full bg-[#0e0f12] border border-[#2b2f3e] rounded-lg px-3.5 py-2 text-sm text-gray-200 focus:outline-none focus:border-pink-500"
+                className="w-full bg-[#0e0f12] border border-[#2b2f3e] rounded-lg px-3.5 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#7950e8]"
               />
             </div>
           )}
@@ -93,7 +93,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@novabuild.com"
-              className="w-full bg-[#0e0f12] border border-[#2b2f3e] rounded-lg px-3.5 py-2 text-sm text-gray-200 focus:outline-none focus:border-pink-500"
+              className="w-full bg-[#0e0f12] border border-[#2b2f3e] rounded-lg px-3.5 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#7950e8]"
             />
           </div>
 
@@ -107,14 +107,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-[#0e0f12] border border-[#2b2f3e] rounded-lg px-3.5 py-2 text-sm text-gray-200 focus:outline-none focus:border-pink-500"
+              className="w-full bg-[#0e0f12] border border-[#2b2f3e] rounded-lg px-3.5 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#7950e8]"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-medium py-2.5 rounded-lg shadow-lg shadow-pink-600/20 transition disabled:opacity-50 mt-2"
+            className="w-full bg-[#7950e8] hover:bg-[#8965f0] text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50 mt-2 cursor-pointer"
           >
             {loading ? 'Processing...' : isRegister ? 'Register Account' : 'Sign In'}
           </button>
@@ -126,7 +126,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               setIsRegister(!isRegister);
               setError(null);
             }}
-            className="text-xs text-pink-400 hover:underline"
+            className="text-xs text-[#c4b5fd] hover:underline cursor-pointer"
           >
             {isRegister
               ? 'Already have an account? Sign in'

@@ -21,7 +21,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   >
     {/* Dynamic glowing page transition beam at the very top of the window */}
     <motion.div
-      className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-violet-500 via-accent to-fuchsia-400 z-[9999] shadow-[0_0_16px_rgba(167,139,250,0.9)] pointer-events-none"
+      className="fixed top-0 left-0 right-0 h-[3px] bg-[#7950e8] z-[9999] shadow-[0_0_16px_rgba(121,80,232,0.8)] pointer-events-none"
       initial={{ scaleX: 0, transformOrigin: '0% 50%', opacity: 1 }}
       animate={{ scaleX: [0, 0.65, 1], opacity: [1, 1, 0] }}
       transition={{ duration: 0.95, ease }}

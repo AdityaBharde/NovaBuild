@@ -139,24 +139,33 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <span className="font-medium text-white">
                 Daily AI Capacity
               </span>
-              <span className="text-xs text-[#71717f]">Tokens/day</span>
+              <span className="text-[#c4b5fd] font-medium">
+                {plan?.unlimitedAi ? 'Unlimited' : 'Active'}
+              </span>
             </div>
             <div className="text-2xl font-bold text-white mt-1">
-              {plan?.maxTokensPerDay
-                ? `${(plan.maxTokensPerDay / 1000).toLocaleString()}k`
-                : '50k'}
-              <span className="text-xs font-normal text-[#71717f] ml-1.5">
-                {plan?.unlimitedAi ? '(Unlimited)' : 'allocated'}
-              </span>
+              {plan?.unlimitedAi ? 'Unlimited AI' : 'Active Quota'}
             </div>
             <p className="text-xs text-[#a1a1aa] mt-1">
               Refreshes daily at 00:00 UTC
             </p>
           </div>
+          <div className="mt-4 pt-2">
+            <div className="w-full h-1.5 bg-[#222332] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#7950e8] transition-all duration-300"
+                style={{ width: plan?.unlimitedAi ? '100%' : '75%' }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2 text-[11px] text-[#71717f]">
+              <span>Daily allowance</span>
+              <span className="text-[#c4b5fd] font-medium">Operational</span>
+            </div>
+          </div>
           <div className="mt-4 pt-3 border-t border-[#262734]">
             <button
               onClick={() => navigate('/usage')}
-              className="w-full py-1.5 px-3 bg-[#1c1d29] hover:bg-[#232435] border border-[#2b2c3d] hover:border-[#443468] text-xs font-medium text-[#c4b5fd] hover:text-white rounded-lg transition-colors text-center"
+              className="w-full py-1.5 px-3 bg-[#1c1d29] hover:bg-[#232435] border border-[#2b2c3d] hover:border-[#443468] text-xs font-medium text-[#c4b5fd] hover:text-white rounded-lg transition-colors text-center cursor-pointer"
             >
               View Quotas
             </button>

@@ -169,8 +169,8 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
       {/* Success Notification */}
       {successBanner && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-3 text-emerald-400 animate-slide-up">
-          <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-[#7950e8]/15 border border-[#7950e8]/30 flex items-start gap-3 text-[#c4b5fd] animate-slide-up">
+          <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-[#a78bfa]" />
           <div className="flex-1 text-xs">
             <h4 className="font-semibold text-sm">Payment Confirmed</h4>
             <p className="mt-0.5 text-text-secondary">{successBanner}</p>
@@ -275,15 +275,26 @@ export const BillingPage: React.FC<BillingPageProps> = ({
               {currentPlan?.maxProjects || 3} Projects
             </span>
           </div>
-          <div className="p-3 rounded-lg bg-surface-elevated border border-border/60">
-            <span className="text-text-secondary text-[11px] block mb-1">
-              Daily AI Quota
-            </span>
-            <span className="font-semibold text-text-primary text-sm">
-              {currentPlan?.maxTokensPerDay
-                ? `${(currentPlan.maxTokensPerDay / 1000).toLocaleString()}k Tokens/day`
-                : '50k Tokens/day'}
-            </span>
+          <div className="p-3 rounded-lg bg-surface-elevated border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-text-secondary text-[11px] block">
+                Daily AI Capacity
+              </span>
+              <span className="text-[11px] text-[#c4b5fd] font-medium">
+                {currentPlan?.unlimitedAi ? 'Unlimited' : 'Active'}
+              </span>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              <div className="w-full bg-[var(--bg-card)] h-1.5 rounded-full overflow-hidden border border-border/50">
+                <div
+                  className="bg-accent h-full rounded-full transition-all duration-300"
+                  style={{ width: currentPlan?.unlimitedAi ? '100%' : '75%' }}
+                />
+              </div>
+              <span className="text-[10px] text-text-secondary block">
+                {currentPlan?.unlimitedAi ? 'Unlimited iterations' : 'Allowance allocated'}
+              </span>
+            </div>
           </div>
           <div className="p-3 rounded-lg bg-surface-elevated border border-border/60">
             <span className="text-text-secondary text-[11px] block mb-1">
@@ -320,25 +331,16 @@ export const BillingPage: React.FC<BillingPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((plan) => {
               const isCurrent = currentPlanId === plan.id;
-              const isPopular = plan.name.toLowerCase().includes('pro');
 
               return (
                 <div
                   key={plan.id}
                   className={`relative flex flex-col justify-between p-6 rounded-2xl bg-surface border transition-all ${
-                    isPopular
-                      ? 'border-accent shadow-lg shadow-accent/5'
+                    isCurrent
+                      ? 'border-accent shadow-sm'
                       : 'border-border hover:border-border/80'
                   }`}
                 >
-                  {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-3 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-accent text-white rounded-full shadow-sm">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
-
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-base text-text-primary">
@@ -370,14 +372,13 @@ export const BillingPage: React.FC<BillingPageProps> = ({
                       {(
                         plan.features || [
                           `Up to ${plan.maxProjects} active projects`,
-                          `${(plan.maxTokensPerDay / 1000).toLocaleString()}k tokens/day limit`,
-                          plan.unlimitedAi ? 'Unlimited AI agent iterations' : 'Standard iterations',
+                          plan.unlimitedAi ? 'Unlimited AI agent iterations' : 'Dedicated daily AI generation capacity',
                           `${plan.maxPreviews || 1} preview container sandboxes`,
                           'Monaco full code editing',
                         ]
                       ).map((feat, idx) => (
                         <li key={idx} className="flex items-start gap-2.5">
-                          <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <Check className="w-4 h-4 text-[#a78bfa] shrink-0 mt-0.5" />
                           <span className="leading-snug">{feat}</span>
                         </li>
                       ))}
@@ -396,7 +397,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
                     ) : plan.id === 0 ? (
                       <button
                         onClick={handleOpenPortal}
-                        className="w-full py-2 px-3 text-xs font-medium rounded-lg border border-border hover:bg-surface-elevated text-text-primary transition-colors"
+                        className="w-full py-2 px-3 text-xs font-medium rounded-lg border border-border hover:bg-surface-elevated text-text-primary transition-colors cursor-pointer"
                       >
                         Downgrade via Portal
                       </button>
@@ -404,11 +405,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
                       <button
                         disabled={isProcessingCheckout !== null}
                         onClick={() => handleCheckout(plan.id)}
-                        className={`w-full py-2 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition-all ${
-                          isPopular
-                            ? 'bg-accent hover:bg-accent-hover text-white shadow-sm shadow-accent/20'
-                            : 'bg-surface-elevated hover:bg-surface border border-border text-text-primary'
-                        } disabled:opacity-50`}
+                        className="w-full py-2 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition-all bg-accent hover:bg-accent-hover text-white shadow-sm shadow-accent/20 cursor-pointer disabled:opacity-50"
                       >
                         {isProcessingCheckout === plan.id ? (
                           <>

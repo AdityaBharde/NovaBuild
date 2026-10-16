@@ -24,7 +24,7 @@ export const ToastContainer: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
           className="pointer-events-auto flex items-start gap-3 p-3.5 bg-surface-elevated border border-border rounded-xl shadow-xl animate-slide-up text-text-primary"
         >
           {toast.type === 'success' && (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-[#a78bfa] shrink-0 mt-0.5" />
           )}
           {toast.type === 'error' && (
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />

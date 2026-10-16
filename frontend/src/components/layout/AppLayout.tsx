@@ -78,7 +78,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   };
 
   return (
-    <div className="relative z-10 flex h-screen w-screen overflow-hidden bg-[#0f1015]/90 backdrop-blur-[2px] font-sans text-text-primary antialiased">
+    <div className="relative z-10 flex h-screen w-screen overflow-hidden bg-[var(--bg-app)]/90 backdrop-blur-[2px] font-sans text-text-primary antialiased transition-colors duration-200">
       {/* Persistent Left Sidebar */}
       <Sidebar
         user={user}

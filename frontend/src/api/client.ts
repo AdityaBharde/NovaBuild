@@ -340,7 +340,7 @@ export async function getPlans(): Promise<Plan[]> {
       description: 'Ideal for trying out NovaBuild and experimenting with AI coding.',
       features: [
         'Up to 3 active projects',
-        '50,000 tokens/day AI generation',
+        'Daily AI generation allowance',
         'Real-time Monaco code editor',
         'Instant HTML & React preview',
         'Community support',
@@ -359,7 +359,7 @@ export async function getPlans(): Promise<Plan[]> {
       description: 'Built for developers needing unlimited AI power and faster builds.',
       features: [
         'Up to 10 active projects',
-        '1,000,000 tokens/day quota',
+        'Expanded daily AI capacity',
         'Unlimited AI agent iterations',
         '3 concurrent preview containers',
         'Full Stripe customer portal',
@@ -379,7 +379,7 @@ export async function getPlans(): Promise<Plan[]> {
       description: 'For growing teams requiring dedicated throughput and high capacity.',
       features: [
         'Up to 20 active projects',
-        '1 Billion tokens/day AI capacity',
+        'High-throughput dedicated AI capacity',
         '5 concurrent container sandboxes',
         'Multi-user workspace collaboration',
         'Custom domain support',

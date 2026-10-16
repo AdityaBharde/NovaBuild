@@ -69,10 +69,18 @@ export const Header: React.FC<HeaderProps> = ({
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <header className="h-14 border-b border-[#262734] bg-[#12131c]/90 backdrop-blur-md flex items-center justify-between px-6 z-20 shrink-0">
+    <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-header)]/90 backdrop-blur-md flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-200">
       {/* Left: Breadcrumbs & Project Switcher */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 text-xs text-[#a1a1aa]">
+          <Link
+            to="/dashboard/home"
+            className="hover:text-white cursor-pointer transition-colors"
+            title="Go to Overview"
+          >
+            NovaBuild
+          </Link>
+          <span className="text-[#555562]">/</span>
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && <span className="text-[#555562]">/</span>}
@@ -148,15 +156,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right: Actions & User Menu */}
       <div className="flex items-center gap-3">
-        {/* Create Project CTA Button */}
-        <button
-          onClick={onOpenNewProjectModal}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#7950e8] hover:bg-[#8965f0] text-white text-xs font-semibold rounded-lg transition-colors active:scale-95"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New Project</span>
-        </button>
-
         {/* User Account Menu */}
         <div className="relative" ref={userMenuRef}>
           <button

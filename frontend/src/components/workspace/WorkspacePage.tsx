@@ -889,7 +889,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                     <Monitor className="w-3.5 h-3.5 text-accent" />
                     <span className="font-semibold text-text-primary">Live Preview</span>
                     {sandboxStatus?.previewUrl && (
-                      <span className="text-[10px] text-emerald-400 font-medium">
+                      <span className="text-[10px] text-[#c4b5fd] font-medium">
                         Sandbox Active
                       </span>
                     )}

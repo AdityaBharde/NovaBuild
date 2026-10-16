@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onDeployPreview}
             disabled={isDeploying}
-            className="flex items-center space-x-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3.5 py-1.5 rounded-md text-sm font-medium shadow-md transition disabled:opacity-50"
+            className="flex items-center space-x-1.5 bg-[#7950e8] hover:bg-[#8965f0] text-white px-3.5 py-1.5 rounded-lg text-sm font-medium transition disabled:opacity-50"
           >
             <Play className="w-4 h-4 fill-white" />
             <span>{isDeploying ? 'Deploying...' : 'Run Preview'}</span>

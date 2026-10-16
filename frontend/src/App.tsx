@@ -268,6 +268,18 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         />
 
+        {/* Overview alias */}
+        <Route
+          path="/overview"
+          element={
+            user ? (
+              <Navigate to="/dashboard/home" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
         {/* Authenticated application */}
         <Route
           element={
@@ -297,15 +309,17 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
                 subscription={subscription}
                 onSelectProject={setActiveProject}
                 onOpenNewProjectModal={() => {
-                  const button = document.querySelector('header button');
-
-                  if (button) {
-                    (button as HTMLElement).click();
-                  }
+                  window.dispatchEvent(new CustomEvent('novabuild:create-project'));
                 }}
                 isLoading={isLoading}
               />
             }
+          />
+
+          {/* Overview route alias */}
+          <Route
+            path="/overview"
+            element={<Navigate to="/dashboard/home" replace />}
           />
 
           {/* Projects */}
@@ -316,11 +330,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
                 projects={projects}
                 onSelectProject={setActiveProject}
                 onOpenNewProjectModal={() => {
-                  const button = document.querySelector('header button');
-
-                  if (button) {
-                    (button as HTMLElement).click();
-                  }
+                  window.dispatchEvent(new CustomEvent('novabuild:create-project'));
                 }}
                 onProjectUpdated={handleProjectUpdated}
                 onProjectDeleted={handleProjectDeleted}

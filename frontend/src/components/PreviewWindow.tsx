@@ -51,9 +51,9 @@ export const PreviewWindow: React.FC<PreviewWindowProps> = ({
             </>
           ) : isContainerRunning ? (
             <>
-              <Monitor className="w-3.5 h-3.5 text-green-500" />
+              <Monitor className="w-3.5 h-3.5 text-[#a78bfa]" />
               <span className="text-text-primary font-medium">Live Container</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 font-semibold">Running</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#7950e8]/15 text-[#c4b5fd] font-semibold border border-[#7950e8]/30">Running</span>
             </>
           ) : (
             <>
