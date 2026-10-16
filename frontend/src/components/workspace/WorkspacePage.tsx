@@ -46,7 +46,6 @@ import {
   PanelRight,
   Maximize2,
   Minimize2,
-  Sparkles,
 } from 'lucide-react';
 
 interface WorkspacePageProps {
@@ -934,31 +933,25 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
         {/* PANEL 3: AI Agent Chat */}
         {showChat && (
-          <aside className="w-80 border-l border-border bg-surface flex flex-col shrink-0">
-            <div className="h-10 px-4 border-b border-border/70 flex items-center justify-between text-xs font-semibold text-text-secondary">
-              <span className="flex items-center gap-1.5 text-text-primary">
-                <Sparkles className="w-3.5 h-3.5 text-accent" />
-                NovaBuild Agent
-              </span>
-              <Badge variant="violet" size="sm">
-                ONLINE
-              </Badge>
-            </div>
-
-            <div className="flex-1 overflow-hidden">
-              <PromptPanel
-                messages={messages}
-                isStreaming={isStreaming}
-                currentStatus={currentStatus}
-                onSendPrompt={handleSendPrompt}
-                onSelectFile={(path) => {
-                  const target = files.find((f) => f.filePath === path);
-                  if (target) {
-                    handleSelectFile(target);
-                  }
-                }}
-              />
-            </div>
+          <aside className="w-80 border-l border-border bg-surface flex flex-col shrink-0 h-full overflow-hidden">
+            <PromptPanel
+              messages={messages}
+              isStreaming={isStreaming}
+              currentStatus={currentStatus}
+              onSendPrompt={handleSendPrompt}
+              onResetChat={() => {
+                if (!isStreaming) {
+                  setMessages([]);
+                  setCurrentStatus(null);
+                }
+              }}
+              onSelectFile={(path) => {
+                const target = files.find((f) => f.filePath === path);
+                if (target) {
+                  handleSelectFile(target);
+                }
+              }}
+            />
           </aside>
         )}
       </div>

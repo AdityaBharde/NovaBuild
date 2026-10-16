@@ -370,15 +370,18 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
         </div>
 
         {/* Right: AI Assistant */}
-        <div className="w-80 border-r border-border flex flex-col bg-surface">
-          <div className="h-9 border-b border-border flex items-center px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-            AI Assistant
-          </div>
+        <div className="w-80 border-r border-border flex flex-col bg-surface h-full overflow-hidden">
           <PromptPanel 
             messages={messages}
             isStreaming={isStreaming}
             currentStatus={currentStatus}
             onSendPrompt={handleSendPrompt}
+            onResetChat={() => {
+              if (!isStreaming) {
+                setMessages([]);
+                setCurrentStatus(null);
+              }
+            }}
           />
         </div>
 
