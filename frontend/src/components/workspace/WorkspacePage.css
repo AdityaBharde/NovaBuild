@@ -1,0 +1,151 @@
+/* NovaBuild workspace — restrained Cursor/ChatGPT-inspired layout */
+.novabuild-workspace {
+  --workspace-bg: #0b0e16;
+  --workspace-surface: #101522;
+  --workspace-elevated: #151c2d;
+  --workspace-border: #222b40;
+  --workspace-muted: #929bb2;
+  --workspace-text: #eef0fb;
+  --workspace-accent: #8257f5;
+  background: var(--workspace-bg);
+  color: var(--workspace-text);
+  isolation: isolate;
+  min-height: 0;
+}
+
+.novabuild-workspace .workspace-panels {
+  background: var(--workspace-bg);
+  min-width: 0;
+}
+
+.novabuild-workspace .workspace-files-panel,
+.novabuild-workspace .workspace-chat-panel {
+  background: var(--workspace-surface);
+  min-width: 0;
+  max-width: 52vw;
+}
+
+.novabuild-workspace .workspace-editor-panel {
+  background: var(--workspace-bg);
+  min-width: 0;
+}
+
+.novabuild-workspace .workspace-resize-handle {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 5px;
+  width: 5px;
+  margin-inline: -1px;
+  cursor: col-resize;
+  background: transparent;
+  touch-action: none;
+  transition: background-color 140ms ease;
+}
+
+.novabuild-workspace .workspace-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 1px;
+  background: var(--workspace-border);
+  transition: background-color 140ms ease, width 140ms ease;
+}
+
+.novabuild-workspace .workspace-resize-handle:hover::after,
+.novabuild-workspace .workspace-resize-handle:focus-visible::after {
+  left: 1px;
+  width: 3px;
+  background: var(--workspace-accent);
+}
+
+.novabuild-workspace button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.novabuild-workspace button:focus-visible,
+.novabuild-workspace input:focus-visible,
+.novabuild-workspace textarea:focus-visible {
+  outline: 2px solid rgba(130, 87, 245, 0.72);
+  outline-offset: 2px;
+}
+
+.novabuild-workspace ::selection {
+  color: #fff;
+  background: rgba(130, 87, 245, 0.42);
+}
+
+.novabuild-workspace .workspace-chat-panel > div {
+  min-height: 0;
+}
+
+.novabuild-workspace .workspace-chat-panel form textarea {
+  max-height: 180px;
+}
+
+.novabuild-workspace .workspace-files-panel input,
+.novabuild-workspace .workspace-chat-panel textarea {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .novabuild-workspace .workspace-files-panel {
+    max-width: 32vw;
+  }
+
+  .novabuild-workspace .workspace-chat-panel {
+    max-width: 44vw;
+  }
+}
+
+@media (max-width: 860px) {
+  .novabuild-workspace .workspace-files-panel {
+    position: absolute;
+    z-index: 30;
+    inset: 44px auto 0 0;
+    width: min(280px, 78vw) !important;
+    max-width: 78vw;
+    box-shadow: 18px 0 45px rgba(0, 0, 0, 0.32);
+  }
+
+  .novabuild-workspace .workspace-files-panel ~ .workspace-resize-handle {
+    display: none;
+  }
+
+  .novabuild-workspace .workspace-chat-panel {
+    position: absolute;
+    z-index: 25;
+    inset: 44px 0 0 auto;
+    width: min(380px, 92vw) !important;
+    max-width: 92vw;
+    box-shadow: -18px 0 45px rgba(0, 0, 0, 0.32);
+  }
+
+  .novabuild-workspace .workspace-chat-panel + * {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .novabuild-workspace .workspace-panels {
+    position: relative;
+  }
+
+  .novabuild-workspace .workspace-files-panel,
+  .novabuild-workspace .workspace-chat-panel {
+    width: min(340px, 94vw) !important;
+    max-width: 94vw;
+  }
+
+  .novabuild-workspace .workspace-resize-handle {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novabuild-workspace .workspace-resize-handle,
+  .novabuild-workspace .workspace-resize-handle::after {
+    transition: none;
+  }
+}
