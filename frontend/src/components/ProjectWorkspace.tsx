@@ -204,8 +204,9 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
             const newFileObj: ProjectFile = { filePath: changedPath, content: data.content, isModified: false };
             setFiles(prev => {
               const existing = prev.find(f => f.filePath === changedPath);
+              if (existing?.isModified) return prev;
               return existing
-                ? prev.map(f => f.filePath === changedPath ? { ...newFileObj, isModified: existing.isModified } : f)
+                ? prev.map(f => f.filePath === changedPath ? newFileObj : f)
                 : [...prev, newFileObj];
             });
             setActiveFile(prev => {
