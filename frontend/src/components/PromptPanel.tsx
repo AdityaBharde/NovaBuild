@@ -3,13 +3,9 @@ import { motion, useReducedMotion } from 'motion/react';
 import {
   ArrowUp,
   CircleCheck,
-  Globe,
   LoaderCircle,
   MessageCircleDashed,
-  Paperclip,
-  Plus,
   RotateCw,
-  Telescope,
   ChevronDown,
   FileCode,
   ExternalLink,
@@ -279,12 +275,9 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   onRetry,
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [isContextOpen, setIsContextOpen] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -305,19 +298,6 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
     }
   }, [messages, isStreaming, currentStatus]);
 
-  // Close context dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsContextOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   const canSend = prompt.trim().length > 0 && !isStreaming;
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -333,7 +313,6 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       onResetChat();
     }
     setPrompt('');
-    setIsContextOpen(false);
   };
 
   return (
@@ -499,86 +478,6 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
             />
 
             <div className="flex items-center justify-between pt-1">
-              {/* Context Dropdown (+) */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  type="button"
-                  aria-label="Add context"
-                  onClick={() => setIsContextOpen(!isContextOpen)}
-                  className="nb-chat-add p-2 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center"
-                  title="Add context"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-
-                {isContextOpen && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 rounded-xl bg-surface-elevated border border-border shadow-xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        fileInputRef.current?.click();
-                        setIsContextOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-text-primary hover:bg-surface text-left transition-colors"
-                    >
-                      <Paperclip className="w-3.5 h-3.5 text-accent" />
-                      <span>Add Photos & Files</span>
-                    </button>
-                    <div className="my-1 border-t border-border/60" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrompt((prev) =>
-                          prev ? `${prev}\n[Deep Research] ` : '[Deep Research] '
-                        );
-                        setIsContextOpen(false);
-                        textareaRef.current?.focus();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-text-primary hover:bg-surface text-left transition-colors"
-                    >
-                      <Telescope className="w-3.5 h-3.5 text-accent" />
-                      <span>Deep Research</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrompt((prev) =>
-                          prev ? `${prev}\n[Web Search] ` : '[Web Search] '
-                        );
-                        setIsContextOpen(false);
-                        textareaRef.current?.focus();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-text-primary hover:bg-surface text-left transition-colors"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-accent" />
-                      <span>Web Search</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Hidden file input */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                multiple
-                onChange={(e) => {
-                  const files = e.target.files;
-                  if (files && files.length > 0) {
-                    const fileNames = Array.from(files)
-                      .map((f) => f.name)
-                      .join(', ');
-                    setPrompt((prev) =>
-                      prev
-                        ? `${prev} [Attached: ${fileNames}]`
-                        : `Review files: ${fileNames}`
-                    );
-                    textareaRef.current?.focus();
-                  }
-                }}
-              />
-
               {/* Send Button */}
               {isStreaming ? (
                 <button type="button" onClick={onStopGeneration} disabled={!onStopGeneration} className="nb-chat-stop w-8 h-8 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-text-primary flex items-center justify-center transition-colors ml-auto" title="Stop generation" aria-label="Stop generation">
