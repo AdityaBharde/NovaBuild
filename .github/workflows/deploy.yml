@@ -89,7 +89,7 @@ jobs:
           docker compose up -d --no-deps --force-recreate discovery-service config-service
 
           docker compose up -d --no-deps --force-recreate \
-            account-service project-service intelligent-service api-gateway frontend
+            account-service project-service intelligent-service api-gateway frontend caddy
 
           docker compose ps
           REMOTE
