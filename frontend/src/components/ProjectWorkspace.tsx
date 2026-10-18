@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Project, ProjectFile, ChatMessage, SandboxStatus, StreamEvent } from '../types';
 import { FileTree } from './FileTree';
 import { CodeEditor } from './CodeEditor';
@@ -23,6 +23,9 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
   const [isLoadingFiles, setIsLoadingFiles] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const activeRequestRef = useRef<AbortController | null>(null);
+  const lastPromptRef = useRef<string | null>(null);
+  const requestInFlightRef = useRef(false);
 
   useEffect(() => {
     loadWorkspaceData();
@@ -33,6 +36,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
     setIsSaving(true);
     try {
       await saveFileContent(String(project.id), activeFile.filePath, activeFile.content);
+      setActiveFile(prev => prev?.filePath === activeFile.filePath ? { ...prev, isModified: false } : prev);
+      setFiles(prev => prev.map(file => file.filePath === activeFile.filePath ? { ...file, isModified: false } : file));
     } catch (e) {
       console.error('Failed to save file', e);
       alert('Failed to save file');
@@ -119,14 +124,111 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
     }
   };
 
-  const handleSendPrompt = async (promptText: string) => {
-    const userMsg: ChatMessage = { id: String(Date.now()), role: 'USER', content: promptText };
-    setMessages(prev => [...prev, userMsg]);
-    setIsStreaming(true);
-    setCurrentStatus('Thinking...');
+  const handleStopGeneration = () => {
+    activeRequestRef.current?.abort();
+  };
 
-    const assistantMsgId = String(Date.now() + 1);
+  const handleSendPrompt = async (promptText: string, isRetry = false) => {
+    const normalizedPrompt = promptText.trim();
+    if (!normalizedPrompt || requestInFlightRef.current) return;
+
+    requestInFlightRef.current = true;
+    activeRequestRef.current = new AbortController();
+    if (!isRetry) lastPromptRef.current = normalizedPrompt;
+
+    const userMsg: ChatMessage | null = isRetry ? null : {
+      id: crypto.randomUUID(),
+      role: 'USER',
+      content: normalizedPrompt,
+      timestamp: new Date().toISOString(),
+    };
+    if (userMsg) setMessages(prev => [...prev, userMsg]);
+
+    const assistantMsgId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: assistantMsgId, role: 'ASSISTANT', content: '' }]);
+    setIsStreaming(true);
+    setCurrentStatus('Connecting…');
+
+    let messageContent = '';
+    let accumulated = '';
+    let streamUpdateFrame: number | null = null;
+    let receivedComplete = false;
+    let streamError: string | null = null;
+    const fileChanges: NonNullable<ChatMessage['fileChanges']> = [];
+
+    const updateAssistant = (patch: Partial<ChatMessage>) => {
+      setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, ...patch } : m));
+    };
+    const scheduleMessageUpdate = () => {
+      if (streamUpdateFrame !== null) return;
+      streamUpdateFrame = requestAnimationFrame(() => {
+        streamUpdateFrame = null;
+        updateAssistant({ content: messageContent });
+      });
+    };
+    const flushMessageUpdate = () => {
+      if (streamUpdateFrame !== null) {
+        cancelAnimationFrame(streamUpdateFrame);
+        streamUpdateFrame = null;
+      }
+      updateAssistant({ content: messageContent });
+    };
+    const processEvent = (data: StreamEvent) => {
+      const eventType = data.type || (data.text ? 'text_delta' : 'status');
+      switch (eventType) {
+        case 'status':
+          if (data.status) setCurrentStatus(data.status);
+          break;
+        case 'tool_start':
+          setCurrentStatus(data.tool ? `Running ${data.tool}…` : 'Inspecting project…');
+          break;
+        case 'tool_result':
+          setCurrentStatus(data.success === false ? 'A project operation failed' : 'Project inspected');
+          break;
+        case 'text_delta':
+          if (data.text) {
+            messageContent += data.text;
+            scheduleMessageUpdate();
+          }
+          break;
+        case 'file_changed': {
+          if (!data.path) break;
+          const changedPath = data.path;
+          const action = data.action || (files.some(f => f.filePath === changedPath) ? 'updated' : 'created');
+          const previousContent = files.find(f => f.filePath === changedPath)?.content;
+          fileChanges.push({ path: changedPath, action, previousContent, content: data.content });
+          if (data.action === 'deleted') {
+            setFiles(prev => prev.filter(f => f.filePath !== changedPath));
+            setActiveFile(prev => prev?.filePath === changedPath ? null : prev);
+          } else if (data.content !== undefined) {
+            const newFileObj: ProjectFile = { filePath: changedPath, content: data.content, isModified: false };
+            setFiles(prev => {
+              const existing = prev.find(f => f.filePath === changedPath);
+              if (existing?.isModified) return prev;
+              return existing
+                ? prev.map(f => f.filePath === changedPath ? newFileObj : f)
+                : [...prev, newFileObj];
+            });
+            setActiveFile(prev => {
+              if (!prev || prev.filePath !== changedPath) return prev;
+              return prev.isModified ? prev : newFileObj;
+            });
+            if (changedPath.endsWith('.html')) setShowPreview(true);
+          }
+          updateAssistant({ fileChanges: [...fileChanges], filesCreated: [...new Set(fileChanges.filter(f => f.action !== 'deleted').map(f => f.path))] });
+          break;
+        }
+        case 'message_complete':
+          receivedComplete = true;
+          setCurrentStatus(null);
+          break;
+        case 'error':
+          streamError = data.error || 'The server could not complete the request.';
+          setCurrentStatus(streamError);
+          updateAssistant({ content: messageContent || streamError, error: true });
+          break;
+      }
+    };
 
     try {
       const token = localStorage.getItem('novabuild_token') || '';
@@ -134,178 +236,107 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          Accept: 'text/event-stream',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ message: promptText, projectId: project.id })
+        body: JSON.stringify({ message: normalizedPrompt, projectId: project.id }),
+        signal: activeRequestRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error(`Request failed (${response.status})`);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Your session may have expired. Sign in again, then retry.');
       }
-      if (!response.body) throw new Error('No readable stream received from server');
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
+        throw new Error(detail || `Request failed (HTTP ${response.status}).`);
+      }
+      if (!response.body) throw new Error('The server returned no readable stream.');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let accumulated = '';
-      let messageContent = '';
-      let streamUpdateFrame: number | null = null;
-
-      // Coalesce rapid text deltas into at most one transcript update per frame.
-      const scheduleMessageUpdate = () => {
-        if (streamUpdateFrame !== null) return;
-        streamUpdateFrame = requestAnimationFrame(() => {
-          streamUpdateFrame = null;
-          setMessages(prev =>
-            prev.map(m => m.id === assistantMsgId ? { ...m, content: messageContent } : m)
-          );
-        });
-      };
-      const flushMessageUpdate = () => {
-        if (streamUpdateFrame !== null) {
-          cancelAnimationFrame(streamUpdateFrame);
-          streamUpdateFrame = null;
-        }
-        setMessages(prev =>
-          prev.map(m => m.id === assistantMsgId ? { ...m, content: messageContent } : m)
-        );
-      };
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        accumulated += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = accumulated.indexOf('\n')) !== -1) {
-          const line = accumulated.slice(0, newlineIndex);
-          accumulated = accumulated.slice(newlineIndex + 1);
-
-          if (line.startsWith('data:')) {
-            try {
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          let newlineIndex: number;
+          while ((newlineIndex = accumulated.indexOf('\n')) !== -1) {
+            const line = accumulated.slice(0, newlineIndex).replace(/\r$/, '');
+            accumulated = accumulated.slice(newlineIndex + 1);
+            if (line.startsWith('data:')) {
               const dataStr = line.slice(5).trim();
-              if (dataStr) {
-                const data: StreamEvent = JSON.parse(dataStr);
-                const eventType = data.type || (data.text ? 'text_delta' : 'status');
-
-                switch (eventType) {
-                  case 'status':
-                    if (data.status) {
-                      setCurrentStatus(data.status);
-                    }
-                    break;
-
-                  case 'tool_start':
-                    setCurrentStatus(`Inspecting project structure...`);
-                    break;
-
-                  case 'tool_result':
-                    setCurrentStatus(`Inspected project structure`);
-                    break;
-
-                  case 'text_delta':
-                    if (data.text) {
-                      messageContent += data.text;
-                      scheduleMessageUpdate();
-                    }
-                    break;
-
-                  case 'file_changed':
-                    if (data.path && data.content !== undefined) {
-                      const changedPath = data.path;
-                      const changedContent = data.content;
-                      const newFileObj: ProjectFile = { filePath: changedPath, content: changedContent };
-
-                      setFiles(prev => {
-                        const existingIdx = prev.findIndex(f => f.filePath === changedPath);
-                        if (existingIdx >= 0) {
-                          const updated = [...prev];
-                          updated[existingIdx] = newFileObj;
-                          return updated;
-                        }
-                        return [...prev, newFileObj];
-                      });
-
-                      setActiveFile(newFileObj);
-
-                      if (changedPath.endsWith('.html')) {
-                        setShowPreview(true);
-                      }
-                    }
-                    break;
-
-                  case 'message_complete':
-                    setCurrentStatus(null);
-                    break;
-
-                  case 'error':
-                    console.error('Server reported error in stream:', data.error);
-                    setCurrentStatus(`Error: ${data.error || 'Failed'}`);
-                    if (!messageContent) {
-                      messageContent = `Error: ${data.error || 'Operation failed.'}`;
-                      setMessages(prev =>
-                        prev.map(m => m.id === assistantMsgId ? { ...m, content: messageContent } : m)
-                      );
-                    }
-                    break;
+              if (!dataStr || dataStr === '[DONE]') continue;
+              try {
+                processEvent(JSON.parse(dataStr) as StreamEvent);
+              } catch (error) {
+                if (error instanceof SyntaxError) {
+                  console.warn('Ignoring malformed NovaAI stream event.');
+                } else {
+                  throw error;
                 }
               }
-            } catch (e) {
-              // Ignore partial JSON parse errors
             }
           }
         }
+        accumulated += decoder.decode();
+        if (accumulated.trim().startsWith('data:')) {
+          const tail = accumulated.trim().slice(5).trim();
+          if (tail && tail !== '[DONE]') {
+            try { processEvent(JSON.parse(tail) as StreamEvent); } catch { /* Ignore incomplete trailing event. */ }
+          }
+        }
+      } finally {
+        reader.releaseLock();
       }
 
-      // Flush the last partial frame so the final streamed text is never lost.
       flushMessageUpdate();
+      if (streamError) {
+        updateAssistant({ content: messageContent || streamError, error: true, fileChanges: [...fileChanges] });
+      } else if (!receivedComplete) {
+        const interruption = 'The connection ended before NovaAI confirmed completion. You can retry this request.';
+        updateAssistant({ content: messageContent ? `${messageContent}\n\n_${interruption}_` : interruption, error: true, fileChanges: [...fileChanges] });
+      } else {
+        updateAssistant({ content: messageContent, error: false, fileChanges: [...fileChanges] });
+      }
 
-      // Refresh files list after generation to guarantee persistence state
+      // Refresh the tree after generation without replacing the editor's current buffer.
       try {
         const paths = await getProjectFiles(String(project.id));
         setFiles(prev => {
-          const newFiles = [...prev];
-          paths.forEach(p => {
-            if (!newFiles.find(f => f.filePath === p.path)) {
-              newFiles.push({ filePath: p.path, content: '' });
-            }
+          const next = [...prev];
+          paths.forEach(({ path }) => {
+            if (!next.some(f => f.filePath === path)) next.push({ filePath: path, content: '' });
           });
-          return newFiles;
+          return next.filter(file => paths.some(({ path }) => path === file.filePath));
         });
-
-        if (paths.length > 0) {
-          const targetPath = activeFile?.filePath || paths.find(p => p.path.endsWith('.html'))?.path || paths[0].path;
-          if (targetPath) {
-            try {
-              const content = await getFileContent(String(project.id), targetPath);
-              const fullFile: ProjectFile = { filePath: targetPath, content };
-              setActiveFile(fullFile);
-              setFiles(prev => prev.map(f => f.filePath === targetPath ? fullFile : f));
-              if (targetPath.endsWith('.html')) {
-                setShowPreview(true);
-              }
-            } catch (err) {
-              console.warn('Failed to load file content after refresh:', err);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Could not refresh project files:', err);
+      } catch (refreshError) {
+        console.warn('Could not refresh project file list:', refreshError);
       }
-
-    } catch (e: any) {
-      console.error('Streaming error:', e);
-      setCurrentStatus(null);
-      setMessages(prev =>
-        prev.map(m => m.id === assistantMsgId
-          ? { ...m, content: m.content || `Failed to generate response: ${e.message || 'Network error'}` }
-          : m
-        )
-      );
+    } catch (error) {
+      const aborted = error instanceof DOMException && error.name === 'AbortError';
+      const errorMessage = aborted
+        ? 'Generation stopped.'
+        : error instanceof Error ? error.message : 'Network error while generating a response.';
+      updateAssistant({
+        content: messageContent ? `${messageContent}\n\n_${errorMessage}_` : errorMessage,
+        error: !aborted,
+        fileChanges: [...fileChanges],
+      });
+      if (!aborted) setCurrentStatus(errorMessage);
     } finally {
+      flushMessageUpdate();
+      activeRequestRef.current = null;
+      requestInFlightRef.current = false;
       setIsStreaming(false);
       setCurrentStatus(null);
     }
+  };
+
+  const handleRetry = (message: ChatMessage) => {
+    const prompt = lastPromptRef.current;
+    if (!prompt || requestInFlightRef.current) return;
+    setMessages(prev => prev.filter(item => item.id !== message.id));
+    void handleSendPrompt(prompt, true);
   };
 
   // Find preview HTML content if present
@@ -383,8 +414,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
               activeFile={activeFile}
               onChangeContent={(newVal) => {
                 if (!activeFile) return;
-                setFiles(prev => prev.map(f => f.filePath === activeFile.filePath ? { ...f, content: newVal } : f));
-                setActiveFile(prev => prev ? { ...prev, content: newVal } : null);
+                setFiles(prev => prev.map(f => f.filePath === activeFile.filePath ? { ...f, content: newVal, isModified: true } : f));
+                setActiveFile(prev => prev ? { ...prev, content: newVal, isModified: true } : null);
               }}
             />
           ) : (
@@ -401,6 +432,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
             isStreaming={isStreaming}
             currentStatus={currentStatus}
             onSendPrompt={handleSendPrompt}
+            onStopGeneration={handleStopGeneration}
+            onRetry={handleRetry}
             onResetChat={() => {
               if (!isStreaming) {
                 setMessages([]);

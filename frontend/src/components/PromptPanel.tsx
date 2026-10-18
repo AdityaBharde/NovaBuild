@@ -3,17 +3,16 @@ import { motion, useReducedMotion } from 'motion/react';
 import {
   ArrowUp,
   CircleCheck,
-  Globe,
   LoaderCircle,
   MessageCircleDashed,
-  Paperclip,
-  Plus,
   RotateCw,
-  Telescope,
   ChevronDown,
   FileCode,
   ExternalLink,
   AlertCircle,
+  Copy,
+  Check,
+  Square,
 } from 'lucide-react';
 import { ChatMessage, ExecutionStep } from '../types';
 import './PromptPanel.css';
@@ -25,6 +24,8 @@ export interface PromptPanelProps {
   onSendPrompt: (prompt: string) => void;
   onSelectFile?: (filePath: string) => void;
   onResetChat?: () => void;
+  onStopGeneration?: () => void;
+  onRetry?: (message: ChatMessage) => void;
 }
 
 function sanitizeMessageText(content: string): string {
@@ -79,13 +80,14 @@ function renderInlineFormatted(text: string): React.ReactNode {
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  const parts = content.split(/(```[\s\S]*?```)/g);
+  const parts = content.split(/(```[\s\S]*?(?:```|$))/g);
 
   return (
     <div className="space-y-2 leading-relaxed text-xs">
       {parts.map((part, index) => {
-        if (part.startsWith('```') && part.endsWith('```')) {
-          const lines = part.slice(3, -3).trim().split('\n');
+        if (part.startsWith('```')) {
+          const rawBlock = part.slice(3).replace(/```$/, '');
+          const lines = rawBlock.replace(/^\n/, '').replace(/\n$/, '').split('\n');
           const firstLine = lines[0]?.trim() || '';
           const hasLang =
             !firstLine.includes(' ') && firstLine.length > 0 && lines.length > 1;
@@ -97,13 +99,14 @@ function MarkdownContent({ content }: { content: string }) {
               key={index}
               className="rounded-xl bg-background border border-border overflow-hidden my-2 font-mono text-[11px]"
             >
-              {language && (
+              {(language || code) && (
                 <div className="flex items-center justify-between px-3 py-1.5 bg-surface-elevated/70 border-b border-border/60 text-[10px] text-text-secondary uppercase font-semibold">
                   <span>{language}</span>
+                  <CodeCopyButton code={code} />
                 </div>
               )}
               <pre className="p-3 overflow-x-auto custom-scrollbar text-text-primary whitespace-pre">
-                <code>{code}</code>
+                <code>{highlightCode(code)}</code>
               </pre>
             </div>
           );
@@ -154,6 +157,68 @@ function MarkdownContent({ content }: { content: string }) {
         );
       })}
     </div>
+  );
+}
+
+function highlightCode(code: string): React.ReactNode {
+  const tokenPattern = /(\/\/[^\n]*|\b(?:const|let|var|function|return|if|else|class|new|import|from|export|default|async|await|public|private|static|void|int|string|boolean|true|false|null|undefined|package|interface|type|extends|implements|try|catch|throw|switch|case|break)\b|"[^"]*"|'[^']*'|\b\d+(?:\.\d+)?\b)/g;
+  const tokens = code.split(tokenPattern);
+  return tokens.map((token, index) => {
+    if (/^\/\//.test(token)) return <span key={index} className="nb-code-comment">{token}</span>;
+    if (/^["']/.test(token)) return <span key={index} className="nb-code-string">{token}</span>;
+    if (/^\d/.test(token)) return <span key={index} className="nb-code-number">{token}</span>;
+    if (/^(const|let|var|function|return|if|else|class|new|import|from|export|default|async|await|public|private|static|void|int|string|boolean|true|false|null|undefined|package|interface|type|extends|implements|try|catch|throw|switch|case|break)$/.test(token)) {
+      return <span key={index} className="nb-code-keyword">{token}</span>;
+    }
+    return token;
+  });
+}
+
+function CodeCopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <button type="button" className="nb-code-copy" onClick={handleCopy} aria-label="Copy code">
+      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+      <span>{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  );
+}
+
+function FileChangeReview({ change, onSelectFile }: {
+  change: NonNullable<ChatMessage['fileChanges']>[number];
+  onSelectFile?: (path: string) => void;
+}) {
+  return (
+    <details className="nb-file-change">
+      <summary>
+        <span className={`nb-file-action is-${change.action}`}>{change.action}</span>
+        <code>{change.path}</code>
+      </summary>
+      <div className="nb-file-diff">
+        <div>
+          <div className="nb-file-diff-label">Before</div>
+          <pre>{change.previousContent ?? '(No previous content available)'}</pre>
+        </div>
+        <div>
+          <div className="nb-file-diff-label">After</div>
+          <pre>{change.action === 'deleted' ? '(File deleted)' : change.content ?? '(Updated content not included in stream)'}</pre>
+        </div>
+      </div>
+      {change.action !== 'deleted' && onSelectFile && (
+        <button type="button" className="nb-file-open" onClick={() => onSelectFile(change.path)}>
+          Open in editor
+        </button>
+      )}
+    </details>
   );
 }
 
@@ -249,15 +314,21 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   onSendPrompt,
   onSelectFile,
   onResetChat,
+  onStopGeneration,
+  onRetry,
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [isContextOpen, setIsContextOpen] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  }, [prompt]);
 
   // Follow streamed output only while the reader is already near the bottom.
   // This avoids repeatedly pulling users away from older messages while they read.
@@ -269,19 +340,6 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       endOfMessagesRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
     }
   }, [messages, isStreaming, currentStatus]);
-
-  // Close context dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsContextOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const canSend = prompt.trim().length > 0 && !isStreaming;
 
@@ -298,7 +356,6 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       onResetChat();
     }
     setPrompt('');
-    setIsContextOpen(false);
   };
 
   return (
@@ -348,7 +405,8 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
             const displayContent =
               msg.role === 'ASSISTANT' ? sanitizeMessageText(msg.content) : msg.content;
             const steps = msg.steps || [];
-            const hasFiles = msg.filesCreated && msg.filesCreated.length > 0;
+            const fileChanges = msg.fileChanges || [];
+            const canRetry = msg.error && !isStreaming && onRetry;
 
             if (msg.role === 'USER') {
               return (
@@ -391,26 +449,13 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   </div>
                 )}
 
-                {/* 3. CREATED / MODIFIED FILES PILLS */}
-                {hasFiles && (
-                  <div className="nb-chat-artifacts p-2.5 rounded-xl border flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary pl-1">
-                      Changed files
-                    </span>
-                    {msg.filesCreated?.map((filePath) => (
-                      <button
-                        key={filePath}
-                        type="button"
-                        onClick={() => onSelectFile && onSelectFile(filePath)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-accent hover:text-accent text-[11px] font-medium text-text-primary transition-all shadow-sm"
-                        title="Open in Monaco Editor"
-                      >
-                        <FileCode className="w-3.5 h-3.5 text-accent" />
-                        <span className="truncate max-w-[150px]">{filePath}</span>
-                        <ExternalLink className="w-2.5 h-2.5 text-text-secondary ml-0.5" />
-                      </button>
+                {fileChanges.length > 0 && (
+                  <section className="nb-file-review" aria-label="Changed file review">
+                    <div className="nb-file-review-heading">File changes · {fileChanges.length}</div>
+                    {fileChanges.map((change, changeIndex) => (
+                      <FileChangeReview key={`${change.path}-${changeIndex}`} change={change} onSelectFile={onSelectFile} />
                     ))}
-                  </div>
+                  </section>
                 )}
 
                 {/* 4. ASSISTANT TEXT / MARKDOWN */}
@@ -445,8 +490,8 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ask NovaAI to change your code…"
               aria-label="Message"
-              rows={2}
-              className="nb-chat-textarea w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-secondary min-h-[66px] max-h-40 custom-scrollbar leading-relaxed"
+              rows={1}
+              className="nb-chat-textarea w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-secondary min-h-[28px] max-h-40 custom-scrollbar leading-relaxed"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -456,88 +501,12 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
             />
 
             <div className="flex items-center justify-between pt-1">
-              {/* Context Dropdown (+) */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  type="button"
-                  aria-label="Add context"
-                  onClick={() => setIsContextOpen(!isContextOpen)}
-                  className="nb-chat-add p-2 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center"
-                  title="Add context"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-
-                {isContextOpen && (
-                  <div className="absolute left-0 bottom-full mb-2 w-48 rounded-xl bg-surface-elevated border border-border shadow-xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        fileInputRef.current?.click();
-                        setIsContextOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-text-primary hover:bg-surface text-left transition-colors"
-                    >
-                      <Paperclip className="w-3.5 h-3.5 text-accent" />
-                      <span>Add Photos & Files</span>
-                    </button>
-                    <div className="my-1 border-t border-border/60" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrompt((prev) =>
-                          prev ? `${prev}\n[Deep Research] ` : '[Deep Research] '
-                        );
-                        setIsContextOpen(false);
-                        textareaRef.current?.focus();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-text-primary hover:bg-surface text-left transition-colors"
-                    >
-                      <Telescope className="w-3.5 h-3.5 text-accent" />
-                      <span>Deep Research</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrompt((prev) =>
-                          prev ? `${prev}\n[Web Search] ` : '[Web Search] '
-                        );
-                        setIsContextOpen(false);
-                        textareaRef.current?.focus();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-text-primary hover:bg-surface text-left transition-colors"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-accent" />
-                      <span>Web Search</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Hidden file input */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                multiple
-                onChange={(e) => {
-                  const files = e.target.files;
-                  if (files && files.length > 0) {
-                    const fileNames = Array.from(files)
-                      .map((f) => f.name)
-                      .join(', ');
-                    setPrompt((prev) =>
-                      prev
-                        ? `${prev} [Attached: ${fileNames}]`
-                        : `Review files: ${fileNames}`
-                    );
-                    textareaRef.current?.focus();
-                  }
-                }}
-              />
-
               {/* Send Button */}
-              <button
+              {isStreaming ? (
+                <button type="button" onClick={onStopGeneration} disabled={!onStopGeneration} className="nb-chat-stop w-8 h-8 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-text-primary flex items-center justify-center transition-colors ml-auto" title="Stop generation" aria-label="Stop generation">
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                </button>
+              ) : <button
                 type="submit"
                 disabled={!canSend}
                 className="nb-chat-send w-8 h-8 rounded-xl bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
@@ -545,7 +514,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               >
                 <ArrowUp className="w-4 h-4" />
                 <span className="sr-only">Send</span>
-              </button>
+              </button>}
             </div>
           </div>
         </form>
