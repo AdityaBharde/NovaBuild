@@ -366,3 +366,38 @@
     transition: none;
   }
 }
+
+
+/* Code blocks and recovery controls */
+.nb-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--chat-border);
+  border-radius: 6px;
+  color: #bac4dc;
+  background: rgba(11, 16, 27, 0.65);
+  font: 500 10px/1.3 ui-sans-serif, system-ui, sans-serif;
+  text-transform: none;
+  cursor: pointer;
+}
+.nb-code-copy:hover { color: #f5f6ff; border-color: rgba(139, 107, 250, 0.6); }
+.nb-chat-stop { border-color: #3a4560; }
+.nb-chat-stop:hover { border-color: #8b6bfa; }
+.nb-chat-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 6px 9px;
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  background: #151d2e;
+  color: #d6dcef;
+  font-size: 11px;
+}
+.nb-chat-retry:hover { border-color: #8b6bfa; color: #fff; }
+.nb-chat-response pre code { display: block; min-width: max-content; }
+.nb-chat-response pre { max-width: 100%; overflow-x: auto; }
+.nb-chat-textarea { overflow-y: auto; }
