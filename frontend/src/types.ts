@@ -35,6 +35,13 @@ export interface ExecutionStep {
   timestamp: number;
 }
 
+export interface ChatFileChange {
+  path: string;
+  action: 'created' | 'updated' | 'deleted';
+  previousContent?: string;
+  content?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'USER' | 'ASSISTANT' | 'SYSTEM';
@@ -42,6 +49,8 @@ export interface ChatMessage {
   timestamp?: string;
   steps?: ExecutionStep[];
   filesCreated?: string[];
+  fileChanges?: ChatFileChange[];
+  error?: boolean;
 }
 
 export interface SandboxStatus {
