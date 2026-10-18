@@ -405,9 +405,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
             const displayContent =
               msg.role === 'ASSISTANT' ? sanitizeMessageText(msg.content) : msg.content;
             const steps = msg.steps || [];
-            const hasFiles = msg.filesCreated && msg.filesCreated.length > 0;
             const fileChanges = msg.fileChanges || [];
-            const isLastAssistant = msg.role === 'ASSISTANT' && i === messages.length - 1;
             const canRetry = msg.error && !isStreaming && onRetry;
 
             if (msg.role === 'USER') {
