@@ -193,6 +193,35 @@ function CodeCopyButton({ code }: { code: string }) {
   );
 }
 
+function FileChangeReview({ change, onSelectFile }: {
+  change: NonNullable<ChatMessage['fileChanges']>[number];
+  onSelectFile?: (path: string) => void;
+}) {
+  return (
+    <details className="nb-file-change">
+      <summary>
+        <span className={`nb-file-action is-${change.action}`}>{change.action}</span>
+        <code>{change.path}</code>
+      </summary>
+      <div className="nb-file-diff">
+        <div>
+          <div className="nb-file-diff-label">Before</div>
+          <pre>{change.previousContent ?? '(No previous content available)'}</pre>
+        </div>
+        <div>
+          <div className="nb-file-diff-label">After</div>
+          <pre>{change.action === 'deleted' ? '(File deleted)' : change.content ?? '(Updated content not included in stream)'}</pre>
+        </div>
+      </div>
+      {change.action !== 'deleted' && onSelectFile && (
+        <button type="button" className="nb-file-open" onClick={() => onSelectFile(change.path)}>
+          Open in editor
+        </button>
+      )}
+    </details>
+  );
+}
+
 function StepStatusIcon({ status }: { status?: 'running' | 'error' }) {
   if (status === 'running') return <LoaderCircle className="animate-spin" />;
   if (status === 'error') return <AlertCircle />;
@@ -377,6 +406,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               msg.role === 'ASSISTANT' ? sanitizeMessageText(msg.content) : msg.content;
             const steps = msg.steps || [];
             const hasFiles = msg.filesCreated && msg.filesCreated.length > 0;
+            const fileChanges = msg.fileChanges || [];
             const isLastAssistant = msg.role === 'ASSISTANT' && i === messages.length - 1;
             const canRetry = msg.error && !isStreaming && onRetry;
 
@@ -447,6 +477,15 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   <button type="button" className="nb-chat-retry" onClick={() => onRetry?.(msg)}>
                     <RotateCw className="w-3.5 h-3.5" /> Retry response
                   </button>
+                )}
+
+                {fileChanges.length > 0 && (
+                  <section className="nb-file-review" aria-label="Changed file review">
+                    <div className="nb-file-review-heading">File changes · {fileChanges.length}</div>
+                    {fileChanges.map((change, changeIndex) => (
+                      <FileChangeReview key={`${change.path}-${changeIndex}`} change={change} onSelectFile={onSelectFile} />
+                    ))}
+                  </section>
                 )}
 
                 {/* 4. ASSISTANT TEXT / MARKDOWN */}
