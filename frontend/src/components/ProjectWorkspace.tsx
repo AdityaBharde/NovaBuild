@@ -36,6 +36,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
     setIsSaving(true);
     try {
       await saveFileContent(String(project.id), activeFile.filePath, activeFile.content);
+      setActiveFile(prev => prev?.filePath === activeFile.filePath ? { ...prev, isModified: false } : prev);
+      setFiles(prev => prev.map(file => file.filePath === activeFile.filePath ? { ...file, isModified: false } : file));
     } catch (e) {
       console.error('Failed to save file', e);
       alert('Failed to save file');
