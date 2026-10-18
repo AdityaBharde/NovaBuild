@@ -161,7 +161,7 @@ function MarkdownContent({ content }: { content: string }) {
 }
 
 function highlightCode(code: string): React.ReactNode {
-  const tokenPattern = /(\/\/[^\n]*|\b(?:const|let|var|function|return|if|else|class|new|import|from|export|default|async|await|public|private|static|void|int|string|boolean|true|false|null|undefined|package|interface|type|extends|implements|try|catch|throw|switch|case|break)\b|"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|\b\\d+(?:\\.\\d+)?\b)/g;
+  const tokenPattern = /(\/\/[^\n]*|\b(?:const|let|var|function|return|if|else|class|new|import|from|export|default|async|await|public|private|static|void|int|string|boolean|true|false|null|undefined|package|interface|type|extends|implements|try|catch|throw|switch|case|break)\b|"[^"]*"|'[^']*'|\b\d+(\.\d+)?\b)/g;
   const tokens = code.split(tokenPattern);
   return tokens.map((token, index) => {
     if (/^\/\//.test(token)) return <span key={index} className="nb-code-comment">{token}</span>;
