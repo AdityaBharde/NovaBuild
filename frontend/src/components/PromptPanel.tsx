@@ -14,6 +14,9 @@ import {
   FileCode,
   ExternalLink,
   AlertCircle,
+  Copy,
+  Check,
+  Square,
 } from 'lucide-react';
 import { ChatMessage, ExecutionStep } from '../types';
 import './PromptPanel.css';
@@ -25,6 +28,8 @@ export interface PromptPanelProps {
   onSendPrompt: (prompt: string) => void;
   onSelectFile?: (filePath: string) => void;
   onResetChat?: () => void;
+  onStopGeneration?: () => void;
+  onRetry?: (message: ChatMessage) => void;
 }
 
 function sanitizeMessageText(content: string): string {
@@ -84,8 +89,9 @@ function MarkdownContent({ content }: { content: string }) {
   return (
     <div className="space-y-2 leading-relaxed text-xs">
       {parts.map((part, index) => {
-        if (part.startsWith('```') && part.endsWith('```')) {
-          const lines = part.slice(3, -3).trim().split('\n');
+        if (part.startsWith('```')) {
+          const rawBlock = part.slice(3).replace(/```$/, '');
+          const lines = rawBlock.replace(/^\n/, '').replace(/\n$/, '').split('\n');
           const firstLine = lines[0]?.trim() || '';
           const hasLang =
             !firstLine.includes(' ') && firstLine.length > 0 && lines.length > 1;
@@ -97,9 +103,10 @@ function MarkdownContent({ content }: { content: string }) {
               key={index}
               className="rounded-xl bg-background border border-border overflow-hidden my-2 font-mono text-[11px]"
             >
-              {language && (
+              {(language || code) && (
                 <div className="flex items-center justify-between px-3 py-1.5 bg-surface-elevated/70 border-b border-border/60 text-[10px] text-text-secondary uppercase font-semibold">
                   <span>{language}</span>
+                  <CodeCopyButton code={code} />
                 </div>
               )}
               <pre className="p-3 overflow-x-auto custom-scrollbar text-text-primary whitespace-pre">
@@ -154,6 +161,25 @@ function MarkdownContent({ content }: { content: string }) {
         );
       })}
     </div>
+  );
+}
+
+function CodeCopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <button type="button" className="nb-code-copy" onClick={handleCopy} aria-label="Copy code">
+      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+      <span>{copied ? 'Copied' : 'Copy'}</span>
+    </button>
   );
 }
 
@@ -249,6 +275,8 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   onSendPrompt,
   onSelectFile,
   onResetChat,
+  onStopGeneration,
+  onRetry,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [isContextOpen, setIsContextOpen] = useState(false);
@@ -258,6 +286,13 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  }, [prompt]);
 
   // Follow streamed output only while the reader is already near the bottom.
   // This avoids repeatedly pulling users away from older messages while they read.
@@ -349,6 +384,8 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               msg.role === 'ASSISTANT' ? sanitizeMessageText(msg.content) : msg.content;
             const steps = msg.steps || [];
             const hasFiles = msg.filesCreated && msg.filesCreated.length > 0;
+            const isLastAssistant = msg.role === 'ASSISTANT' && i === messages.length - 1;
+            const canRetry = msg.error && !isStreaming && onRetry;
 
             if (msg.role === 'USER') {
               return (
@@ -413,6 +450,12 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   </div>
                 )}
 
+                {canRetry && (
+                  <button type="button" className="nb-chat-retry" onClick={() => onRetry?.(msg)}>
+                    <RotateCw className="w-3.5 h-3.5" /> Retry response
+                  </button>
+                )}
+
                 {/* 4. ASSISTANT TEXT / MARKDOWN */}
                 {(displayContent || (!steps.length && isStreamingThis)) && (
                   <div className="nb-chat-response text-text-primary leading-relaxed">
@@ -445,8 +488,8 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ask NovaAI to change your code…"
               aria-label="Message"
-              rows={2}
-              className="nb-chat-textarea w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-secondary min-h-[66px] max-h-40 custom-scrollbar leading-relaxed"
+              rows={1}
+              className="nb-chat-textarea w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-secondary min-h-[28px] max-h-40 custom-scrollbar leading-relaxed"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -537,7 +580,11 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               />
 
               {/* Send Button */}
-              <button
+              {isStreaming ? (
+                <button type="button" onClick={onStopGeneration} disabled={!onStopGeneration} className="nb-chat-stop w-8 h-8 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-text-primary flex items-center justify-center transition-colors ml-auto" title="Stop generation" aria-label="Stop generation">
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                </button>
+              ) : <button
                 type="submit"
                 disabled={!canSend}
                 className="nb-chat-send w-8 h-8 rounded-xl bg-accent hover:bg-accent-hover text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
@@ -545,7 +592,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               >
                 <ArrowUp className="w-4 h-4" />
                 <span className="sr-only">Send</span>
-              </button>
+              </button>}
             </div>
           </div>
         </form>
