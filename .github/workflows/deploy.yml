@@ -1,4 +1,3 @@
-
 name: NovaBuild CI/CD
 
 on:
@@ -56,14 +55,14 @@ jobs:
         env:
           AZURE_HOST: ${{ secrets.AZURE_HOST }}
           AZURE_USER: ${{ secrets.AZURE_USER }}
-          AZURE_SSH_KEY: ${{ secrets.AZURE_SSH_KEY }}
+          AZURE_SSH_KEY_B64: ${{ secrets.AZURE_SSH_KEY }}
         run: |
           set -eu
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          printf '%s\n' "$AZURE_SSH_KEY" > ~/.ssh/azure_key
+          printf '%s' "$AZURE_SSH_KEY_B64" | base64 -d > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
 
           ssh-keyscan -H "$AZURE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
