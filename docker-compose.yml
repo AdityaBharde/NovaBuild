@@ -1,9 +1,23 @@
-version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: novabuild-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - novabuild-network
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: novabuild-zookeeper
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -13,13 +27,13 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: novabuild-kafka
+    restart: unless-stopped
     depends_on:
       - zookeeper
-    ports:
-      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -30,15 +44,143 @@ services:
   minio:
     image: soldevelo/minio:latest
     container_name: novabuild-minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    networks:
+      - novabuild-network
+
+  discovery-service:
+    image: novabuild-discovery-service:latest
+    container_name: novabuild-discovery-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    networks:
+      - novabuild-network
+
+  config-service:
+    image: novabuild-config-service:latest
+    container_name: novabuild-config-service
+    restart: unless-stopped
+    depends_on:
+      - discovery-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    networks:
+      - novabuild-network
+
+  account-service:
+    image: novabuild-account-service:latest
+    container_name: novabuild-account-service
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - discovery-service
+      - config-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URI: http://config-service:8888
+      EUREKA_URI: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novabuild_account_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL}
+      AI_BASE_URL: ${AI_BASE_URL}
+      AI_API_KEY: ${AI_API_KEY}
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    networks:
+      - novabuild-network
+
+  project-service:
+    image: novabuild-project-service:latest
+    container_name: novabuild-project-service
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - kafka
+      - minio
+      - discovery-service
+      - config-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URI: http://config-service:8888
+      EUREKA_URI: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/project_service
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MINIO_URL: http://minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-projects}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    networks:
+      - novabuild-network
+
+  intelligent-service:
+    image: novabuild-intelligent-service:latest
+    container_name: novabuild-intelligent-service
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - kafka
+      - discovery-service
+      - config-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URI: http://config-service:8888
+      EUREKA_URI: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novabuild_intelligent_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_APPLICATION_JSON: '{"jwt":{"secret-key":"${JWT_SECRET}"}}'
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AI_BASE_URL: https://openrouter.ai/api
+      AI_API_KEY: ${AI_API_KEY}
+      AI_MODEL: openrouter/free
+    networks:
+      - novabuild-network
+
+  api-gateway:
+    image: novabuild-api-gateway:latest
+    container_name: novabuild-api-gateway
+    restart: unless-stopped
+    depends_on:
+      - discovery-service
+      - config-service
+      - account-service
+      - project-service
+      - intelligent-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URI: http://config-service:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      EUREKA_URI: http://discovery-service:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - novabuild-network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: novabuild-frontend
+    restart: unless-stopped
+    depends_on:
+      - api-gateway
+    ports:
+      - "80:80"
     networks:
       - novabuild-network
 
@@ -47,4 +189,5 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
   minio_data:

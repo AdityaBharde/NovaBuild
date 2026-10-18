@@ -16,10 +16,14 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   ai:
     openai:
+      base-url: ${AI_BASE_URL:https://openrouter.ai/api}
       api-key: ${AI_API_KEY}
+      chat:
+        options:
+          model: openrouter/free
 
 jwt:
-  secret-key: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
+  secret-key: ${JWT_SECRET}
       
 eureka:
   client:
