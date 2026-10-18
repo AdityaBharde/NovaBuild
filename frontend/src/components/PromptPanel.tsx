@@ -451,34 +451,6 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   </div>
                 )}
 
-                {/* 3. CREATED / MODIFIED FILES PILLS */}
-                {hasFiles && (
-                  <div className="nb-chat-artifacts p-2.5 rounded-xl border flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary pl-1">
-                      Changed files
-                    </span>
-                    {msg.filesCreated?.map((filePath) => (
-                      <button
-                        key={filePath}
-                        type="button"
-                        onClick={() => onSelectFile && onSelectFile(filePath)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border hover:border-accent hover:text-accent text-[11px] font-medium text-text-primary transition-all shadow-sm"
-                        title="Open in Monaco Editor"
-                      >
-                        <FileCode className="w-3.5 h-3.5 text-accent" />
-                        <span className="truncate max-w-[150px]">{filePath}</span>
-                        <ExternalLink className="w-2.5 h-2.5 text-text-secondary ml-0.5" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {canRetry && (
-                  <button type="button" className="nb-chat-retry" onClick={() => onRetry?.(msg)}>
-                    <RotateCw className="w-3.5 h-3.5" /> Retry response
-                  </button>
-                )}
-
                 {fileChanges.length > 0 && (
                   <section className="nb-file-review" aria-label="Changed file review">
                     <div className="nb-file-review-heading">File changes · {fileChanges.length}</div>
