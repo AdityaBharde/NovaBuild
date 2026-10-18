@@ -259,8 +259,15 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
+  // Follow streamed output only while the reader is already near the bottom.
+  // This avoids repeatedly pulling users away from older messages while they read.
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const transcript = endOfMessagesRef.current?.parentElement;
+    if (!transcript) return;
+    const distanceFromBottom = transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight;
+    if (distanceFromBottom < 140) {
+      endOfMessagesRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+    }
   }, [messages, isStreaming, currentStatus]);
 
   // Close context dropdown on outside click
@@ -300,11 +307,10 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
       <div className="nb-chat-header flex items-center justify-between gap-3 px-4 py-3 border-b border-border shrink-0">
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2">
-            <div className="font-semibold text-sm text-text-primary">Agent</div>
-            <span className="nb-chat-status"><span /> {isStreaming ? 'Working' : 'Ready'}</span>
+            <div className="font-semibold text-sm text-text-primary">NovaAI</div>
           </div>
           <div className="text-xs text-text-secondary truncate">
-            {messages.length ? 'Conversation' : 'Describe what you want to build.'}
+            {messages.length ? 'Project conversation' : 'Describe what you want to build.'}
           </div>
         </div>
         <button
@@ -312,8 +318,8 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
           onClick={handleReset}
           disabled={isStreaming}
           className="nb-chat-reset p-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Reset conversation"
-          aria-label="Reset conversation"
+          title="Clear conversation"
+          aria-label="Clear conversation"
         >
           <RotateCw className="w-3.5 h-3.5" />
         </button>
@@ -437,7 +443,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ask the agent to change your code..."
+              placeholder="Ask NovaAI to change your code…"
               aria-label="Message"
               rows={2}
               className="nb-chat-textarea w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-secondary min-h-[66px] max-h-40 custom-scrollbar leading-relaxed"

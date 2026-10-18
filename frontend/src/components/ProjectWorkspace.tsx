@@ -139,12 +139,36 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
         body: JSON.stringify({ message: promptText, projectId: project.id })
       });
 
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
       if (!response.body) throw new Error('No readable stream received from server');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
       let messageContent = '';
+      let streamUpdateFrame: number | null = null;
+
+      // Coalesce rapid text deltas into at most one transcript update per frame.
+      const scheduleMessageUpdate = () => {
+        if (streamUpdateFrame !== null) return;
+        streamUpdateFrame = requestAnimationFrame(() => {
+          streamUpdateFrame = null;
+          setMessages(prev =>
+            prev.map(m => m.id === assistantMsgId ? { ...m, content: messageContent } : m)
+          );
+        });
+      };
+      const flushMessageUpdate = () => {
+        if (streamUpdateFrame !== null) {
+          cancelAnimationFrame(streamUpdateFrame);
+          streamUpdateFrame = null;
+        }
+        setMessages(prev =>
+          prev.map(m => m.id === assistantMsgId ? { ...m, content: messageContent } : m)
+        );
+      };
 
       while (true) {
         const { value, done } = await reader.read();
@@ -182,9 +206,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
                   case 'text_delta':
                     if (data.text) {
                       messageContent += data.text;
-                      setMessages(prev =>
-                        prev.map(m => m.id === assistantMsgId ? { ...m, content: messageContent } : m)
-                      );
+                      scheduleMessageUpdate();
                     }
                     break;
 
@@ -234,6 +256,9 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onB
           }
         }
       }
+
+      // Flush the last partial frame so the final streamed text is never lost.
+      flushMessageUpdate();
 
       // Refresh files list after generation to guarantee persistence state
       try {
