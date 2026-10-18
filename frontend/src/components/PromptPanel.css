@@ -401,3 +401,56 @@
 .nb-chat-response pre code { display: block; min-width: max-content; }
 .nb-chat-response pre { max-width: 100%; overflow-x: auto; }
 .nb-chat-textarea { overflow-y: auto; }
+
+
+.nb-code-keyword { color: #c4a7ff; }
+.nb-code-string { color: #a7dca8; }
+.nb-code-number { color: #f2bd87; }
+.nb-code-comment { color: #7d8aa5; font-style: italic; }
+.nb-file-review {
+  overflow: hidden;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  background: rgba(21, 30, 49, 0.62);
+}
+.nb-file-review-heading {
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--chat-border);
+  color: #cbd3e8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.nb-file-change + .nb-file-change { border-top: 1px solid rgba(63, 76, 108, .35); }
+.nb-file-change summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  cursor: pointer;
+  color: #dce3f5;
+  font-size: 11px;
+  list-style: none;
+}
+.nb-file-change summary::-webkit-details-marker { display: none; }
+.nb-file-change summary code { min-width: 0; overflow-wrap: anywhere; }
+.nb-file-action {
+  flex: 0 0 auto;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.nb-file-action.is-created { color: #b9d8ff; background: rgba(80, 145, 220, .14); }
+.nb-file-action.is-updated { color: #d2c5ff; background: rgba(139, 107, 250, .14); }
+.nb-file-action.is-deleted { color: #ffb4b8; background: rgba(220, 90, 100, .14); }
+.nb-file-diff { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid rgba(63, 76, 108, .35); }
+.nb-file-diff > div { min-width: 0; }
+.nb-file-diff > div + div { border-left: 1px solid rgba(63, 76, 108, .35); }
+.nb-file-diff-label { padding: 6px 8px; color: #8f9bb5; font-size: 9px; text-transform: uppercase; }
+.nb-file-diff pre { max-height: 220px; overflow: auto; padding: 8px; color: #cbd3e8; font: 10px/1.6 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.nb-file-open { margin: 0 8px 8px; padding: 5px 8px; border: 1px solid var(--chat-border); border-radius: 6px; color: #dcd4ff; font-size: 10px; }
+.nb-file-open:hover { border-color: #8b6bfa; }
+@media (max-width: 560px) { .nb-file-diff { grid-template-columns: 1fr; } .nb-file-diff > div + div { border-left: 0; border-top: 1px solid rgba(63, 76, 108, .35); } }
