@@ -1,291 +1,98 @@
-name: NovaBuild Production CI/CD (GKE)
+
+name: NovaBuild CI/CD
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      target_service:
-        description: 'Service to deploy'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - frontend
-          - api-gateway
-          - intelligent-service
-          - project-service
-          - account-service
-          - config-service
-          - discovery-service
-          - k8s-manifests-only
 
-env:
-  PROJECT_ID: protean-sunup-463913-t9
-  GAR_LOCATION: asia-south2
-  GKE_CLUSTER: novabuild
-  GKE_ZONE: asia-south2
-  NAMESPACE: novabuild
-  REGISTRY: asia-south2-docker.pkg.dev/protean-sunup-463913-t9/novabuild-repo
+permissions:
+  contents: read
 
 concurrency:
-  group: deploy-production
+  group: novabuild-production
   cancel-in-progress: false
 
 jobs:
-  # ==========================================
-  # STAGE 1: Monorepo Dynamic Change Detection
-  # ==========================================
-  filter:
-    name: Detect Changed Components
+  ci:
+    name: Build and validate
     runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.changes.outputs.frontend }}
-      k8s: ${{ steps.changes.outputs.k8s }}
-      backend_services: ${{ steps.matrix.outputs.services }}
-      has_backend: ${{ steps.matrix.outputs.has_backend }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Path Filtering
-        uses: dorny/paths-filter@v3
-        id: changes
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-            api_gateway:
-              - 'api-gateway/**'
-              - 'common-lib/**'
-              - 'pom.xml'
-            intelligent_service:
-              - 'intelligent-service/**'
-              - 'common-lib/**'
-              - 'pom.xml'
-            project_service:
-              - 'project-service/**'
-              - 'common-lib/**'
-              - 'pom.xml'
-            account_service:
-              - 'account-service/**'
-              - 'common-lib/**'
-              - 'pom.xml'
-            config_service:
-              - 'config-service/**'
-              - 'pom.xml'
-            discovery_service:
-              - 'discovery-service/**'
-              - 'pom.xml'
-            k8s:
-              - 'k8s/**'
-
-      - name: Compute Dynamic Backend Matrix
-        id: matrix
-        run: |
-          SERVICES=()
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TARGET="${{ github.event.inputs.target_service }}"
-            if [ "$TARGET" = "all" ]; then
-              SERVICES=("discovery-service" "config-service" "api-gateway" "account-service" "project-service" "intelligent-service")
-            elif [ "$TARGET" != "frontend" ] && [ "$TARGET" != "k8s-manifests-only" ]; then
-              SERVICES=("$TARGET")
-            fi
-          else
-            if [ "${{ steps.changes.outputs.discovery_service }}" = "true" ]; then SERVICES+=("discovery-service"); fi
-            if [ "${{ steps.changes.outputs.config_service }}" = "true" ]; then SERVICES+=("config-service"); fi
-            if [ "${{ steps.changes.outputs.api_gateway }}" = "true" ]; then SERVICES+=("api-gateway"); fi
-            if [ "${{ steps.changes.outputs.account_service }}" = "true" ]; then SERVICES+=("account-service"); fi
-            if [ "${{ steps.changes.outputs.project_service }}" = "true" ]; then SERVICES+=("project-service"); fi
-            if [ "${{ steps.changes.outputs.intelligent_service }}" = "true" ]; then SERVICES+=("intelligent-service"); fi
-          fi
-
-          if [ ${#SERVICES[@]} -eq 0 ]; then
-            echo "services=[]" >> $GITHUB_OUTPUT
-            echo "has_backend=false" >> $GITHUB_OUTPUT
-          else
-            JSON=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -s -c .)
-            echo "services=$JSON" >> $GITHUB_OUTPUT
-            echo "has_backend=true" >> $GITHUB_OUTPUT
-          fi
-
-  # ==========================================
-  # STAGE 2: Build & Push Java Microservices
-  # ==========================================
-  build-and-push-backend:
-    name: Build & Push (${{ matrix.service }})
-    needs: filter
-    if: needs.filter.outputs.has_backend == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.filter.outputs.backend_services) }}
 
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+          cache: maven
 
-      - name: Build JAR with Maven (${{ matrix.service }})
+      - name: Build Maven modules
+        run: mvn -B -DskipTests package
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
         run: |
-          mvn clean package -pl ${{ matrix.service }} -am -DskipTests --batch-mode
+          npm ci
+          npm run build
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Configure Docker for Artifact Registry
-        run: |
-          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./${{ matrix.service }}
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ matrix.service }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ==========================================
-  # STAGE 3: Build & Push Frontend
-  # ==========================================
-  build-and-push-frontend:
-    name: Build & Push Frontend
-    needs: filter
-    runs-on: ubuntu-latest
-    if: >-
-      (github.event_name == 'push' && needs.filter.outputs.frontend == 'true') ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_service == 'all' || github.event.inputs.target_service == 'frontend'))
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Configure Docker for Artifact Registry
-        run: |
-          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
-
-      - name: Build and Push Frontend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/frontend:${{ github.sha }}
-            ${{ env.REGISTRY }}/frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ==========================================
-  # STAGE 4: Continuous Deployment to GKE
-  # ==========================================
-  deploy-to-gke:
-    name: Deploy & Rollout to GKE
-    needs:
-      - filter
-      - build-and-push-backend
-      - build-and-push-frontend
-    if: >-
-      always() &&
-      !cancelled() &&
-      !contains(needs.*.result, 'failure') &&
-      (
-        needs.filter.outputs.has_backend == 'true' ||
-        needs.filter.outputs.frontend == 'true' ||
-        needs.filter.outputs.k8s == 'true' ||
-        github.event_name == 'workflow_dispatch'
-      )
+  deploy:
+    name: Deploy to Azure VM
+    needs: ci
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK & GKE Auth Plugin
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: 'gke-gcloud-auth-plugin'
-
-      - name: Connect to GKE Cluster
+      - name: Deploy over SSH
+        env:
+          AZURE_HOST: ${{ secrets.AZURE_HOST }}
+          AZURE_USER: ${{ secrets.AZURE_USER }}
+          AZURE_SSH_KEY: ${{ secrets.AZURE_SSH_KEY }}
         run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
-            --region ${{ env.GKE_ZONE }} \
-            --project ${{ env.PROJECT_ID }}
+          set -eu
 
-      - name: Apply Infrastructure & Ingress Manifests
-        run: |
-          kubectl apply -f k8s/00-namespace.yaml
-          kubectl apply -f k8s/01-configmap.yaml
-          kubectl apply -f k8s/infrastructure/
-          kubectl apply -f k8s/06-ingress/ingress.yaml
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
 
-      - name: Apply Service Manifests
-        if: needs.filter.outputs.k8s == 'true' || github.event.inputs.target_service == 'k8s-manifests-only' || github.event.inputs.target_service == 'all'
-        run: |
-          kubectl apply -f k8s/04-backend/
-          kubectl apply -f k8s/05-frontend/
+          printf '%s\n' "$AZURE_SSH_KEY" > ~/.ssh/azure_key
+          chmod 600 ~/.ssh/azure_key
 
-      - name: Rolling Update - Backend Deployments
-        if: needs.filter.outputs.has_backend == 'true'
-        run: |
-          SERVICES='${{ needs.filter.outputs.backend_services }}'
-          for svc in $(echo "$SERVICES" | jq -r '.[]'); do
-            echo "Updating deployment for $svc with image tag ${{ github.sha }}..."
-            kubectl set image deployment/$svc $svc=${{ env.REGISTRY }}/$svc:${{ github.sha }} -n ${{ env.NAMESPACE }}
-            echo "Verifying rollout for $svc..."
-            if ! kubectl rollout status deployment/$svc -n ${{ env.NAMESPACE }} --timeout=180s; then
-              echo "::error::Rollout failed for $svc! Initiating automatic rollback..."
-              kubectl rollout undo deployment/$svc -n ${{ env.NAMESPACE }}
-              exit 1
-            fi
-          done
+          ssh-keyscan -H "$AZURE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Rolling Update - Frontend Deployment
-        if: needs.filter.outputs.frontend == 'true' || github.event.inputs.target_service == 'all' || github.event.inputs.target_service == 'frontend'
-        run: |
-          echo "Updating deployment for frontend with image tag ${{ github.sha }}..."
-          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/frontend:${{ github.sha }} -n ${{ env.NAMESPACE }}
-          echo "Verifying rollout for frontend..."
-          if ! kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=180s; then
-            echo "::error::Rollout failed for frontend! Initiating automatic rollback..."
-            kubectl rollout undo deployment/frontend -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
+          ssh -i ~/.ssh/azure_key \
+            -o IdentitiesOnly=yes \
+            "$AZURE_USER@$AZURE_HOST" 'bash -se' <<'REMOTE'
+          set -eu
 
-      - name: Post-Deployment Cluster State
-        if: always()
-        run: |
-          echo "=== Active Pods in Namespace ${{ env.NAMESPACE }} ==="
-          kubectl get pods -n ${{ env.NAMESPACE }} -o wide
-          echo "=== Public Endpoints ==="
-          kubectl get svc -n ${{ env.NAMESPACE }}
-          kubectl get ingress -n ${{ env.NAMESPACE }}
+          cd ~/NovaBuild
+          git pull --ff-only origin main
+
+          mvn -B -DskipTests package
+
+          docker build -t novabuild-discovery-service:latest ./discovery-service
+          docker build -t novabuild-config-service:latest ./config-service
+          docker build -t novabuild-account-service:latest ./account-service
+          docker build -t novabuild-project-service:latest ./project-service
+          docker build -t novabuild-intelligent-service:latest ./intelligent-service
+          docker build -t novabuild-api-gateway:latest ./api-gateway
+
+          docker compose build frontend
+
+          docker compose up -d --no-deps --force-recreate discovery-service config-service
+
+          docker compose up -d --no-deps --force-recreate \
+            account-service project-service intelligent-service api-gateway frontend
+
+          docker compose ps
+          REMOTE
+
+          rm -f ~/.ssh/azure_key
