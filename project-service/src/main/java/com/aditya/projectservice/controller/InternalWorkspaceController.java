@@ -5,6 +5,7 @@ import com.aditya.commonlib.enums.ProjectPermission;
 import com.aditya.projectservice.service.ProjectFileService;
 import com.aditya.projectservice.service.ProjectService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
@@ -16,16 +17,19 @@ public class InternalWorkspaceController {
     private final ProjectFileService projectFileService;
 
     @GetMapping("/projects/{projectId}/files/tree")
+    @PreAuthorize("@security.canViewProject(#projectId)")
     public FileTreeDto getFileTree(@PathVariable Long projectId) {
         return projectFileService.getFileTree(projectId);
     }
 
     @GetMapping("/projects/{projectId}/files/content")
+    @PreAuthorize("@security.canViewProject(#projectId)")
     public String getFileContent(@PathVariable Long projectId, @RequestParam String path) {
         return projectFileService.getFileContent(projectId, path);
     }
 
     @PostMapping("/projects/{projectId}/files/content")
+    @PreAuthorize("@security.canEditProject(#projectId)")
     public void saveFile(
             @PathVariable Long projectId,
             @RequestParam String path,
@@ -34,6 +38,7 @@ public class InternalWorkspaceController {
     }
 
     @DeleteMapping("/projects/{projectId}/files")
+    @PreAuthorize("@security.canDeleteProject(#projectId)")
     public void deleteFile(
             @PathVariable Long projectId,
             @RequestParam String path) {
@@ -41,6 +46,7 @@ public class InternalWorkspaceController {
     }
 
     @GetMapping("/projects/{projectId}/permissions/check")
+    @PreAuthorize("isAuthenticated()")
     public boolean checkProjectPermission(
             @PathVariable Long projectId,
             @RequestParam ProjectPermission permission) {
