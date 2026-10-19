@@ -33,9 +33,9 @@ jwt:
 
 stripe:
   api:
-    secret: ${STRIPE_API_KEY:default_stripe_key}
+    secret: ${STRIPE_API_KEY}
   webhook:
-    secret: ${Stripe_Webhook_Secret:default_webhook_secret}
+    secret: ${STRIPE_WEBHOOK_SECRET}
 
 app:
   frontend:
