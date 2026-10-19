@@ -29,13 +29,13 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
 
 jwt:
-  secret-key: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
+  secret-key: ${JWT_SECRET}
 
 stripe:
   api:
-    secret: ${STRIPE_API_KEY:default_stripe_key}
+    secret: ${STRIPE_API_KEY}
   webhook:
-    secret: ${Stripe_Webhook_Secret:default_webhook_secret}
+    secret: ${STRIPE_WEBHOOK_SECRET}
 
 app:
   frontend:
