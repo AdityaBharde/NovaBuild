@@ -16,7 +16,7 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 jwt:
-  secret-key: ${JWT_SECRET:novabuild-lovable-clone-super-secret-key-2026-production-32bytes}
+  secret-key: ${JWT_SECRET}
 
 eureka:
   client:
