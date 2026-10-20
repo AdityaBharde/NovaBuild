@@ -1,10 +1,10 @@
 package com.aditya.projectservice.controller;
 
 import com.aditya.commonlib.dto.FileTreeDto;
-import com.aditya.projectservice.dto.project.FileContentResponse;
 import com.aditya.projectservice.service.ProjectFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,11 +15,13 @@ public class FileController {
     private final ProjectFileService projectFileService;
 
     @GetMapping
+    @PreAuthorize("@security.canViewProject(#projectId)")
     public ResponseEntity<FileTreeDto> getFileTree(@PathVariable Long projectId) {
         return ResponseEntity.ok(projectFileService.getFileTree(projectId));
     }
 
     @GetMapping("/content")
+    @PreAuthorize("@security.canViewProject(#projectId)")
     public ResponseEntity<String> getFile(
             @PathVariable Long projectId,
             @RequestParam String path) {
@@ -27,6 +29,7 @@ public class FileController {
     }
 
     @PostMapping("/content")
+    @PreAuthorize("@security.canEditProject(#projectId)")
     public ResponseEntity<Void> saveFile(
             @PathVariable Long projectId,
             @RequestParam String path,
@@ -36,6 +39,7 @@ public class FileController {
     }
 
     @DeleteMapping
+    @PreAuthorize("@security.canDeleteProject(#projectId)")
     public ResponseEntity<Void> deleteFile(
             @PathVariable Long projectId,
             @RequestParam String path) {
