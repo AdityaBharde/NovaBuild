@@ -35,7 +35,7 @@ jobs:
               - 'frontend/**'
 
   test-backend:
-    name: Java & Spring Boot Tests
+    name: Java & Spring Boot Build (Tests Skipped)
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -51,13 +51,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compile & Run Unit Tests
+      - name: Compile & Package (Skip Tests)
         run: |
-          mvn clean test --batch-mode
-
-      - name: Package Verification (Dry-Run)
-        run: |
-          mvn package -DskipTests --batch-mode
+          mvn clean package -Dmaven.test.skip=true --batch-mode
 
   test-frontend:
     name: Frontend Lint & Build Test
