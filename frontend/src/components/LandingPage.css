@@ -1,4 +1,4 @@
-
+﻿
 /* Global landing shell */
 .landing-page {
   position: relative;
@@ -50,6 +50,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
+  transform: translate(-50%, -50%);
   filter: blur(22px);
   display: block;
   flex: none;
@@ -80,18 +81,19 @@
 /* Orbit each soft gradient around the same center.
    The circle centers travel visibly; the overall glow stays centered on the hero. */
 @keyframes big-circle-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg) translateX(26px); }
-  to { transform: translate(-50%, -50%) rotate(-360deg) translateX(26px); }
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 @keyframes small-circle-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg) translateX(42px); }
-  to { transform: translate(-50%, -50%) rotate(360deg) translateX(42px); }
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(-360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .landing-page .big-circle,
   .landing-page .small-circle {
+    transform: translate(-50%, -50%);
     animation: none;
   }
 }
@@ -265,13 +267,6 @@
   justify-content: center;
   align-items: center;
   text-align: center;
-}
-
-@media (max-width: 640px) {
-  .hero-content {
-    min-height: calc(100svh - 68px);
-    padding: 32px 20px;
-  }
 }
 
 
@@ -834,100 +829,6 @@
 
 .footer-links a:hover { color: white; }
 
-/* ==========================================================================
-   Responsive layouts
-   ========================================================================== */
-
-@media (max-width: 900px) {
-  .preview-body {
-    grid-template-columns: 155px minmax(0, 1fr);
-  }
-
-  .preview-assistant { display: none; }
-
-  .feature-grid,
-  .workflow-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .landing-nav {
-    min-height: 68px;
-    padding: 0 18px;
-  }
-
-  .landing-logo { font-size: 16px; }
-
-  .nav-links { display: none; }
-
-  .nav-actions { gap: 14px; }
-
-  .nav-cta { padding: 10px 12px; }
-
-  .landing-page .black-hole-scene {
-    top: 68px;
-    height: calc(100svh - 68px);
-  }
-
-  .hero-title {
-    font-size: clamp(38px, 10vw, 56px);
-    letter-spacing: -0.055em;
-  }
-
-  .hero-description { font-size: 14px; }
-
-  .hero-actions {
-    flex-direction: column;
-    align-items: stretch;
-    max-width: 260px;
-    margin-right: auto;
-    margin-left: auto;
-  }
-
-  .product-preview {
-    width: calc(100% - 28px);
-    margin-bottom: 50px;
-  }
-
-  .preview-body { grid-template-columns: 1fr; }
-
-  .preview-sidebar { display: none; }
-
-  .preview-address {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .preview-window { border-radius: 10px; }
-
-  .code-content {
-    padding: 16px 8px;
-    font-size: 9px;
-  }
-
-  .landing-section {
-    width: calc(100% - 32px);
-    padding: 55px 0;
-  }
-
-  .landing-cta {
-    margin: 35px 16px 60px;
-    padding: 48px 18px;
-  }
-
-  .landing-footer {
-    justify-content: center;
-    text-align: center;
-  }
-
-  .landing-footer > * {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
 /* Accessibility: stop movement when reduced motion is requested */
 @media (prefers-reduced-motion: reduce) {
   .hero-button,
@@ -1027,19 +928,6 @@
 .product-preview .preview-window {
   position: relative;
   z-index: 1;
-}
-
-/* Touchscreens don't have a precise hover pointer. */
-@media (hover: none) {
-  .product-preview .preview-interactive {
-    transform: none;
-    transition: none;
-    filter: none;
-  }
-
-  .product-preview .preview-interactive::before {
-    display: none;
-  }
 }
 
 /* Respect the user's reduced-motion preference. */
