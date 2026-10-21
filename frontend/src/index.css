@@ -580,3 +580,32 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+
+
+/* NovaBuild product-wide typography and surface consistency pass */
+:root {
+  --nb-font-sans: Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --nb-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --nb-text-primary: #f4f3f8;
+  --nb-text-secondary: #b2afbf;
+  --nb-text-muted: #898596;
+  --nb-border-subtle: rgba(210, 199, 238, 0.12);
+  --nb-surface-workspace: #0d0c12;
+  --nb-surface-panel: #111018;
+  --nb-surface-raised: #17151f;
+  --nb-accent: #a78bfa;
+  --nb-focus-ring: rgba(167, 139, 250, 0.62);
+}
+
+html { font-family: var(--nb-font-sans); }
+body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; }
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--nb-focus-ring);
+  outline-offset: 2px;
+}
+code, pre, kbd, samp { font-family: var(--nb-font-mono); }
+::selection { background: rgba(167, 139, 250, 0.28); color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
