@@ -391,6 +391,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                   content: messageContent,
                   steps: [...executionSteps],
                   filesCreated: Array.from(createdFilesSet),
+                  ...(executionSteps.some((step) => step.status === 'error') ? { error: true } : {}),
                 }
               : m
           )
