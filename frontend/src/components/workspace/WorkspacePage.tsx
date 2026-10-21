@@ -141,6 +141,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const loadWorkspace = async (projId: string) => {
     setIsLoadingWorkspace(true);
     setWorkspaceError(null);
+    setFiles([]);
+    setOpenTabs([]);
+    setActiveFile(null);
+    setHasUnsavedChanges(false);
     try {
       // 1. Fetch project meta
       const p = await getProjectById(projId);
