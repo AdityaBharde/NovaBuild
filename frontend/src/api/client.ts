@@ -210,16 +210,28 @@ export async function deleteProject(projectId: string | number): Promise<void> {
 // ----------------- FILES & WORKSPACE -----------------
 
 export async function getProjectFiles(projectId: string | number): Promise<{ path: string }[]> {
+  const res = await fetch(`${GATEWAY_BASE}/projects/${projectId}/files`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Unable to load project files (${res.status}): ${detail || res.statusText}`);
+  }
+  const data: unknown = await res.json();
+  if (!data || typeof data !== 'object' || !Array.isArray((data as { files?: unknown }).files)) {
+    throw new Error('The project service returned an invalid file list.');
+  }
+  return (data as { files: { path: string }[] }).files;
+}
+
+async function readApiError(res: Response): Promise<string> {
+  const body = await res.text().catch(() => '');
+  if (!body) return res.statusText || 'No error details returned by the server';
   try {
-    const res = await fetch(`${GATEWAY_BASE}/projects/${projectId}/files`, {
-      headers: { ...getAuthHeaders() },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.files || [];
-  } catch (e) {
-    console.error(`Failed to fetch files for project ${projectId}`, e);
-    return [];
+    const parsed = JSON.parse(body);
+    return parsed.message || parsed.error || parsed.detail || body;
+  } catch {
+    return body;
   }
 }
 
@@ -227,17 +239,23 @@ export async function getFileContent(projectId: string | number, path: string): 
   const res = await fetch(`${GATEWAY_BASE}/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`, {
     headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) throw new Error('Failed to fetch file content');
+  if (!res.ok) throw new Error(`Unable to read ${path} (${res.status}): ${await readApiError(res)}`);
   return await res.text();
 }
 
 export async function saveFileContent(projectId: string | number, path: string, content: string): Promise<void> {
   const res = await fetch(`${GATEWAY_BASE}/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain', ...getAuthHeaders() },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', ...getAuthHeaders() },
     body: content,
   });
-  if (!res.ok) throw new Error('Failed to save file');
+  if (!res.ok) throw new Error(`Unable to save ${path} (${res.status}): ${await readApiError(res)}`);
+
+  // Confirm the write is visible through the read path before telling the editor it is saved.
+  const persisted = await getFileContent(projectId, path);
+  if (persisted !== content) {
+    throw new Error(`The server accepted the save for ${path}, but the saved content did not match when read back. Your changes are still marked unsaved.`);
+  }
 }
 
 export async function deleteFile(projectId: string | number, path: string): Promise<void> {

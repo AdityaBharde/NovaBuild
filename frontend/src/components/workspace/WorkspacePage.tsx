@@ -73,6 +73,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 
   // Layout view controls
   const [showFileTree, setShowFileTree] = useState(() => window.innerWidth > 860);
@@ -139,6 +140,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
   const loadWorkspace = async (projId: string) => {
     setIsLoadingWorkspace(true);
+    setWorkspaceError(null);
+    setFiles([]);
+    setOpenTabs([]);
+    setActiveFile(null);
+    setHasUnsavedChanges(false);
     try {
       // 1. Fetch project meta
       const p = await getProjectById(projId);
@@ -201,7 +207,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         );
       }
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unknown workspace loading error';
       console.error('Error loading workspace:', e);
+      setWorkspaceError(message);
     } finally {
       setIsLoadingWorkspace(false);
     }
@@ -225,8 +233,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         );
         setActiveFile(updated);
       } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown file read error';
         console.error('Failed to fetch file content', e);
-        setActiveFile(file);
+        setWorkspaceError(message);
+        setActiveFile(null);
       }
     } else {
       setActiveFile(file);
@@ -267,7 +277,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       await saveFileContent(activeProjectId, activeFile.filePath, activeFile.content);
       const saved = { ...activeFile, isModified: false };
       setActiveFile(saved);
-      setHasUnsavedChanges(false);
+      setHasUnsavedChanges(files.some((file) => file.filePath !== activeFile.filePath && file.isModified));
+      setWorkspaceError(null);
       setFiles((prev) =>
         prev.map((f) => (f.filePath === activeFile.filePath ? saved : f))
       );
@@ -275,7 +286,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         prev.map((t) => (t.filePath === activeFile.filePath ? saved : t))
       );
     } catch (e) {
-      alert('Failed to save file content');
+      const message = e instanceof Error ? e.message : 'Unknown save error';
+      setWorkspaceError(message);
+      console.error('Failed to save file:', e);
+      alert(message);
     } finally {
       setIsSaving(false);
     }
@@ -295,7 +309,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       setNewFileModalOpen(false);
       setNewFilePath('');
     } catch (e) {
-      alert('Failed to create file');
+      const message = e instanceof Error ? e.message : 'Unknown file creation error';
+      setWorkspaceError(message);
+      alert(message);
     }
   };
 
@@ -312,7 +328,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       }
       setFileToDelete(null);
     } catch (e) {
-      alert('Failed to delete file');
+      const message = e instanceof Error ? e.message : 'Unknown file deletion error';
+      setWorkspaceError(message);
+      alert(message);
     } finally {
       setIsDeletingFile(false);
     }
@@ -381,6 +399,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       const decoder = new TextDecoder();
       let accumulated = '';
       let messageContent = '';
+      let streamError: string | null = null;
+      const streamStartedAt = Date.now();
 
       const updateAssistantMessage = () => {
         setMessages((prev) =>
@@ -400,9 +420,12 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
-
-        accumulated += decoder.decode(value, { stream: true });
+        if (done) {
+          accumulated += decoder.decode();
+          if (accumulated && !accumulated.endsWith('\n')) accumulated += '\n';
+        } else {
+          accumulated += decoder.decode(value, { stream: true });
+        }
 
         let newlineIndex: number;
         while ((newlineIndex = accumulated.indexOf('\n')) !== -1) {
@@ -591,9 +614,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                     break;
 
                   case 'message_complete':
-                    executionSteps.forEach((s) => {
-                      if (s.status === 'running') s.status = 'completed';
-                    });
+                    if (!streamError) {
+                      executionSteps.forEach((s) => {
+                        if (s.status === 'running') s.status = 'completed';
+                      });
+                    }
                     setFiles((prev) => prev.map((f) => ({ ...f, isGenerating: false })));
                     setCurrentStatus(null);
                     updateAssistantMessage();
@@ -601,6 +626,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
                   case 'error':
                     const errMsg = data.error || 'Failed';
+                    streamError = errMsg;
                     setCurrentStatus(`Error: ${errMsg}`);
                     const activeStep = executionSteps.filter((x) => x.status === 'running').pop();
                     if (activeStep) {
@@ -612,11 +638,26 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                 }
               }
             } catch (e) {
-              // Ignore partial chunk parsing
+              const detail = e instanceof Error ? e.message : 'Invalid stream event';
+              streamError = `NovaAI sent an unreadable stream event: ${detail}`;
+              console.error(streamError, line);
             }
           }
         }
+        if (done) break;
       }
+
+      // Do not present a partial/error stream as successful completion.
+      if (streamError) {
+        executionSteps.forEach((step) => {
+          if (step.status === 'running') { step.status = 'error'; step.detail = streamError || 'Generation failed'; }
+        });
+        setMessages((prev) => prev.map((m) => m.id === assistantMsgId
+          ? { ...m, content: m.content || `NovaAI could not complete this request: ${streamError}`, error: true, steps: [...executionSteps] }
+          : m));
+      }
+      const streamDurationMs = Date.now() - streamStartedAt;
+      console.info('NovaAI stream finished', { durationMs: streamDurationMs, hasError: Boolean(streamError), filesChanged: createdFilesSet.size });
 
       // Refresh files after generation
       try {
@@ -631,7 +672,13 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           return updated;
         });
       } catch (err) {
-        console.warn('Could not refresh files after generation:', err);
+        const message = err instanceof Error ? err.message : 'Could not refresh project files after generation';
+        console.error('Could not refresh files after generation:', err);
+        setWorkspaceError(message);
+        streamError = streamError || message;
+        setMessages((prev) => prev.map((m) => m.id === assistantMsgId
+          ? { ...m, content: m.content || `Files may have been generated, but the workspace could not be refreshed: ${message}`, error: true }
+          : m));
       }
     } catch (e: any) {
       const wasAborted = e?.name === 'AbortError';
@@ -682,6 +729,14 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
   return (
     <div className="novabuild-workspace flex flex-col h-full w-full bg-background font-sans text-text-primary overflow-hidden">
+      {workspaceError && (
+        <div role="alert" className="mx-3 mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          <div className="flex items-start justify-between gap-3">
+            <span>{workspaceError}</span>
+            <button type="button" onClick={() => setWorkspaceError(null)} className="shrink-0 underline">Dismiss</button>
+          </div>
+        </div>
+      )}
       {/* Workspace Action Bar */}
       <div className="h-11 border-b border-border bg-surface flex items-center justify-between px-4 shrink-0 text-xs">
         {/* Left: Project & Breadcrumbs */}

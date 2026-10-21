@@ -135,6 +135,8 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                         }
                     });
 
+                    long modelIterationStartedAt = System.nanoTime();
+                    long[] firstChunkAtNanos = {0L};
                     try {
                         chatClient.prompt()
                                 .system(PromptUtils.CODE_GENERATION_SYSTEM_PROMPT)
@@ -151,6 +153,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                                 })
                                 .filter(text -> !text.isEmpty())
                                 .doOnNext(chunk -> {
+                                    if (firstChunkAtNanos[0] == 0L) firstChunkAtNanos[0] = System.nanoTime();
                                     if (!sink.isCancelled()) {
                                         iterationRawBuffer.append(chunk);
                                         parser.processChunk(chunk);
@@ -159,6 +162,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                                 .blockLast();
 
                         parser.finish();
+                        long modelIterationMs = (System.nanoTime() - modelIterationStartedAt) / 1_000_000;
+                        long timeToFirstChunkMs = firstChunkAtNanos[0] == 0L ? -1L : (firstChunkAtNanos[0] - modelIterationStartedAt) / 1_000_000;
+                        log.info("AI model iteration completed: projectId={}, iteration={}, durationMs={}, timeToFirstChunkMs={}, streamedChars={}", projectId, iteration, modelIterationMs, timeToFirstChunkMs, iterationRawBuffer.length());
                         completeRawResponse.append(iterationRawBuffer).append("\n");
 
                     } catch (Exception e) {
@@ -183,12 +189,15 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                             sink.next(StreamResponse.toolStart(toolCall.name(), toolCall.rawArgs()));
                             sink.next(StreamResponse.status("Executing " + toolCall.name() + "..."));
 
+                            long toolStartedAt = System.nanoTime();
                             ToolRegistry.ToolExecutionResult result = toolRegistry.executeTool(
                                     projectId,
                                     toolCall.name(),
                                     toolCall.rawArgs(),
                                     toolCall.body()
                             );
+                            long toolDurationMs = (System.nanoTime() - toolStartedAt) / 1_000_000;
+                            log.info("AI tool completed: projectId={}, tool={}, durationMs={}, success={}", projectId, toolCall.name(), toolDurationMs, result.success());
 
                             sink.next(StreamResponse.toolResult(
                                     toolCall.name(),
@@ -259,7 +268,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                     sink.next(StreamResponse.error("No files were generated for this request. Please specify the desired implementation or try again."));
                 }
 
-                long duration = (System.currentTimeMillis() - startTime) / 1000;
+                long totalDurationMs = System.currentTimeMillis() - startTime;
+                log.info("AI generation finished: projectId={}, durationMs={}, iterations={}, filesPersisted={}", projectId, totalDurationMs, iteration, persistedFiles.size());
+                long duration = totalDurationMs / 1000;
 
                 String finalAssistantMessage = buildAccurateFinalOutcome(
                         userMessage,
@@ -504,20 +515,10 @@ public class AiGenerationServiceImpl implements AiGenerationService {
             return;
         }
 
-        // 2. Check for tsx/jsx code blocks if user asked for a component or hero section
-        java.util.regex.Pattern reactPattern = java.util.regex.Pattern.compile(
-                "```(?:tsx|jsx|typescript|javascript)?\\s*([\\s\\S]*?)\\s*```"
-        );
-        java.util.regex.Matcher reactMatcher = reactPattern.matcher(rawText);
-        if (reactMatcher.find()) {
-            String code = reactMatcher.group(1).trim();
-            if (code.contains("import") || code.contains("export default") || code.contains("return (") || code.contains("return <")) {
-                String targetPath = userMessage.toLowerCase().contains("hero") ? "src/components/Hero.tsx"
-                        : userMessage.toLowerCase().contains("form") ? "src/components/Form.tsx"
-                        : "src/App.tsx";
-                saveExtractedFile(projectId, targetPath, code, persistedFiles, sink);
-            }
-        }
+        // React snippets are intentionally not written to guessed paths.
+        // A component saved as Hero.tsx is not necessarily imported by the app,
+        // so this fallback previously reported success for code that never rendered.
+        // Ask the agent protocol to provide explicit <file path="..."> payloads instead.
     }
 
     private void saveExtractedFile(
