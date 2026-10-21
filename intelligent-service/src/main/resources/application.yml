@@ -1,7 +1,7 @@
 server:
   port: 8083
 
-debug: true
+debug: false
 spring:
   config:
     import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
@@ -48,4 +48,4 @@ management:
   endpoint:
     health:
       enabled: true
-      show-details: always
+      show-details: never

@@ -565,3 +565,18 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* Viewport and safe-area fixes for mobile browsers. */
+html { -webkit-text-size-adjust: 100%; }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+@media (max-width: 760px) {
+  .app-shell { height: 100dvh; height: 100svh; min-height: 100svh; }
+  .app-main { min-height: 0; }
+  .app-main-scroll { overscroll-behavior-y: contain; }
+  .mobile-bottom-nav { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}

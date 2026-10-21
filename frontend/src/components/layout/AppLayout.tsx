@@ -122,6 +122,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       </div>
 
       {/* Compact mobile navigation; desktop keeps the persistent sidebar. */}
+      {!location.pathname.includes('/workspace') && (
       <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
         {mobileNavItems.map(({ label, to, icon: Icon }) => (
           <NavLink
@@ -135,6 +136,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </NavLink>
         ))}
       </nav>
+      )}
 
       {/* Global New Project Modal */}
       <Modal
