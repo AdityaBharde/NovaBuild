@@ -77,14 +77,22 @@
   animation: small-circle-spin 7s linear infinite;
 }
 
+/* The circles orbit around the visual center instead of spinning in place. */
 @keyframes big-circle-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(-360deg); }
+  from { transform: translate(-50%, -50%) rotate(0deg) translateX(34px); }
+  to { transform: translate(-50%, -50%) rotate(-360deg) translateX(34px); }
 }
 
 @keyframes small-circle-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from { transform: translate(-50%, -50%) rotate(0deg) translateX(62px); }
+  to { transform: translate(-50%, -50%) rotate(360deg) translateX(62px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .big-circle,
+  .landing-page .small-circle {
+    animation: none;
+  }
 }
 
 
