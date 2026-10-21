@@ -77,15 +77,15 @@
   animation: small-circle-spin 7s linear infinite;
 }
 
-/* The circles orbit around the visual center instead of spinning in place. */
+/* Rotate the gradients in place so the glow stays centered behind the hero copy. */
 @keyframes big-circle-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg) translateX(34px); }
-  to { transform: translate(-50%, -50%) rotate(-360deg) translateX(34px); }
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(-360deg); }
 }
 
 @keyframes small-circle-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg) translateX(62px); }
-  to { transform: translate(-50%, -50%) rotate(360deg) translateX(62px); }
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
