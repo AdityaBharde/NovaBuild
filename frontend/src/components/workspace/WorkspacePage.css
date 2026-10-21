@@ -166,3 +166,102 @@
     transition: none;
   }
 }
+
+
+/* Responsive workspace refinements */
+@media (max-width: 860px) {
+  .novabuild-workspace .workspace-panels {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .novabuild-workspace .workspace-files-panel,
+  .novabuild-workspace .workspace-chat-panel {
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    max-height: 100%;
+    border: 1px solid var(--workspace-border);
+    border-radius: 0 12px 12px 0;
+    background: var(--workspace-surface);
+  }
+
+  .novabuild-workspace .workspace-chat-panel {
+    border-radius: 12px 0 0 12px;
+  }
+
+  .novabuild-workspace .workspace-editor-panel {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .novabuild-workspace .workspace-editor-panel > .flex-1.flex.overflow-hidden {
+    flex-direction: column;
+  }
+
+  .novabuild-workspace .workspace-editor-panel > .flex-1.flex.overflow-hidden > div:first-child,
+  .novabuild-workspace .workspace-editor-panel > .flex-1.flex.overflow-hidden > div:nth-child(2) {
+    width: 100% !important;
+    height: 50%;
+    min-height: 0;
+    flex: 1 1 50%;
+  }
+
+  .novabuild-workspace .workspace-editor-panel > .flex-1.flex.overflow-hidden > div:nth-child(2) {
+    border-left: 0;
+    border-top: 1px solid var(--workspace-border);
+  }
+}
+
+@media (max-width: 560px) {
+  .novabuild-workspace > .h-11 {
+    height: auto;
+    min-height: 48px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .novabuild-workspace > .h-11 > div {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .novabuild-workspace > .h-11 > div:first-child {
+    flex: 1 1 100%;
+  }
+
+  .novabuild-workspace > .h-11 > div:nth-child(2) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .novabuild-workspace > .h-11 > div:nth-child(3) {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    padding-top: 6px;
+    border-top: 1px solid var(--workspace-border);
+  }
+
+  .novabuild-workspace > .h-11 > div:nth-child(3) button {
+    min-height: 36px;
+    padding-inline: 9px;
+  }
+
+  .novabuild-workspace .workspace-files-panel,
+  .novabuild-workspace .workspace-chat-panel {
+    width: min(340px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px);
+  }
+
+  .novabuild-workspace .workspace-editor-panel > .h-9 {
+    min-height: 40px;
+  }
+
+  .novabuild-workspace .workspace-editor-panel > .h-9 > div {
+    min-height: 40px;
+  }
+}
