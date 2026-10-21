@@ -115,8 +115,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [newFilePath, setNewFilePath] = useState('');
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isDeletingFile, setIsDeletingFile] = useState(false);
+  const chatAbortController = useRef<AbortController | null>(null);
 
-  const activeProjectId = routeProjectId || (project ? String(project.id) : '6');
+  const activeProjectId = routeProjectId || (project ? String(project.id) : '');
 
   useEffect(() => {
     if (activeProjectId) {
@@ -189,10 +190,13 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       const history = await getChatHistory(projId);
       if (history && Array.isArray(history)) {
         setMessages(
-          history.map((h: any) => ({
-            id: String(h.id || Date.now()),
+          history.map((h: any, index: number) => ({
+            id: String(h.id ?? `history-${projId}-${index}`),
             role: h.role || 'USER',
             content: h.text || h.content || '',
+            ...(Array.isArray(h.steps) ? { steps: h.steps } : {}),
+            ...(Array.isArray(h.fileChanges) ? { fileChanges: h.fileChanges } : {}),
+            ...(Array.isArray(h.filesCreated) ? { filesCreated: h.filesCreated } : {}),
           }))
         );
       }
@@ -355,8 +359,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
     try {
       const token = localStorage.getItem('novabuild_token') || '';
+      const controller = new AbortController();
+      chatAbortController.current = controller;
       const response = await fetch(CHAT_STREAM_URL, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -364,6 +371,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         body: JSON.stringify({ message: promptText, projectId: activeProjectId }),
       });
 
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
+        throw new Error(detail || `AI request failed (${response.status})`);
+      }
       if (!response.body) throw new Error('No readable stream received from server');
 
       const reader = response.body.getReader();
@@ -481,14 +492,14 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                   case 'tool_start':
                     if (data.tool) {
                       const toolName = data.tool;
-                      const rawArgs = data.args || '';
-                      let friendlyTitle = `Executing ${toolName}`;
-                      if (toolName.toLowerCase().includes('structure') || toolName.toLowerCase().includes('tree')) {
+                      const toolLabel = toolName.toLowerCase();
+                      let friendlyTitle = 'Running a project tool';
+                      if (toolLabel.includes('structure') || toolLabel.includes('tree')) {
                         friendlyTitle = 'Analyzing project structure & files';
-                      } else if (toolName.toLowerCase().includes('read')) {
-                        friendlyTitle = `Reading context: ${rawArgs || 'files'}`;
-                      } else if (toolName.toLowerCase().includes('save') || toolName.toLowerCase().includes('create')) {
-                        friendlyTitle = `Creating file: ${rawArgs}`;
+                      } else if (toolLabel.includes('read')) {
+                        friendlyTitle = 'Reading project context';
+                      } else if (toolLabel.includes('save') || toolLabel.includes('create')) {
+                        friendlyTitle = 'Updating project files';
                       }
 
                       setCurrentStatus(friendlyTitle);
@@ -496,7 +507,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                         id: `tool-${toolName}-${Date.now()}`,
                         type: 'tool',
                         title: friendlyTitle,
-                        detail: rawArgs,
+                        detail: 'Tool arguments are hidden because they may contain project data or secrets.',
                         status: 'running',
                         timestamp: Date.now(),
                       });
@@ -622,21 +633,23 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         console.warn('Could not refresh files after generation:', err);
       }
     } catch (e: any) {
-      console.error('Streaming error:', e);
+      const wasAborted = e?.name === 'AbortError';
+      if (!wasAborted) console.error('Streaming error:', e);
       setCurrentStatus(null);
+      setFiles((prev) => prev.map((f) => ({ ...f, isGenerating: false })));
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsgId
             ? {
                 ...m,
-                content:
-                  m.content ||
-                  `Failed to generate response: ${e.message || 'Network error'}`,
+                content: m.content || (wasAborted ? 'Generation stopped.' : `Failed to generate response: ${e.message || 'Network error'}`),
+                ...(wasAborted ? {} : { error: true }),
               }
             : m
         )
       );
     } finally {
+      chatAbortController.current = null;
       setIsStreaming(false);
       setCurrentStatus(null);
     }
@@ -979,6 +992,15 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
               isStreaming={isStreaming}
               currentStatus={currentStatus}
               onSendPrompt={handleSendPrompt}
+              onStopGeneration={() => chatAbortController.current?.abort()}
+              onRetry={(message) => {
+                const messageIndex = messages.findIndex((item) => item.id === message.id);
+                const previousMessage = messageIndex > 0 ? messages[messageIndex - 1] : undefined;
+                if (previousMessage?.role === 'USER' && !isStreaming) {
+                  setMessages((current) => current.filter((item) => item.id !== message.id));
+                  void handleSendPrompt(previousMessage.content);
+                }
+              }}
               onResetChat={() => {
                 if (!isStreaming) {
                   setMessages([]);
