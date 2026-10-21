@@ -136,6 +136,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                     });
 
                     long modelIterationStartedAt = System.nanoTime();
+                    long[] firstChunkAtNanos = {0L};
                     try {
                         chatClient.prompt()
                                 .system(PromptUtils.CODE_GENERATION_SYSTEM_PROMPT)
@@ -152,6 +153,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                                 })
                                 .filter(text -> !text.isEmpty())
                                 .doOnNext(chunk -> {
+                                    if (firstChunkAtNanos[0] == 0L) firstChunkAtNanos[0] = System.nanoTime();
                                     if (!sink.isCancelled()) {
                                         iterationRawBuffer.append(chunk);
                                         parser.processChunk(chunk);
@@ -161,7 +163,8 @@ public class AiGenerationServiceImpl implements AiGenerationService {
 
                         parser.finish();
                         long modelIterationMs = (System.nanoTime() - modelIterationStartedAt) / 1_000_000;
-                        log.info("AI model iteration completed: projectId={}, iteration={}, durationMs={}, streamedChars={}", projectId, iteration, modelIterationMs, iterationRawBuffer.length());
+                        long timeToFirstChunkMs = firstChunkAtNanos[0] == 0L ? -1L : (firstChunkAtNanos[0] - modelIterationStartedAt) / 1_000_000;
+                        log.info("AI model iteration completed: projectId={}, iteration={}, durationMs={}, timeToFirstChunkMs={}, streamedChars={}", projectId, iteration, modelIterationMs, timeToFirstChunkMs, iterationRawBuffer.length());
                         completeRawResponse.append(iterationRawBuffer).append("\n");
 
                     } catch (Exception e) {
