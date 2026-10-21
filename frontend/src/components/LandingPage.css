@@ -77,7 +77,54 @@
   animation: small-circle-spin 7s linear infinite;
 }
 
-/* Rotate the gradients in place so the glow stays centered behind the hero copy. */
+/* Keep both glow layers on the same center point. The conic highlights
+   make their movement visible without sending the circles into an orbit. */
+.landing-page .big-circle,
+.landing-page .small-circle {
+  background: none;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.landing-page .big-circle::before,
+.landing-page .small-circle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.landing-page .big-circle::before {
+  background: conic-gradient(
+    from 0deg,
+    rgba(223, 122, 254, 0.02) 0deg,
+    rgba(223, 122, 254, 0.88) 48deg,
+    rgba(201, 110, 240, 0.02) 104deg,
+    rgba(164, 92, 219, 0.02) 218deg,
+    rgba(129, 74, 200, 0.78) 300deg,
+    rgba(223, 122, 254, 0.02) 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 3px));
+  animation: glow-highlight-clockwise 12s linear infinite;
+}
+
+.landing-page .small-circle::before {
+  background: conic-gradient(
+    from 0deg,
+    rgba(196, 181, 253, 0.02) 0deg,
+    rgba(196, 181, 253, 0.92) 66deg,
+    rgba(167, 139, 250, 0.04) 128deg,
+    rgba(124, 58, 237, 0.04) 235deg,
+    rgba(167, 139, 250, 0.82) 318deg,
+    rgba(196, 181, 253, 0.02) 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 2px));
+  animation: glow-highlight-counterclockwise 8s linear infinite;
+}
+
 @keyframes big-circle-spin {
   from { transform: translate(-50%, -50%) rotate(0deg); }
   to { transform: translate(-50%, -50%) rotate(-360deg); }
@@ -88,9 +135,21 @@
   to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
+@keyframes glow-highlight-clockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glow-highlight-counterclockwise {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-page .big-circle,
-  .landing-page .small-circle {
+  .landing-page .small-circle,
+  .landing-page .big-circle::before,
+  .landing-page .small-circle::before {
     animation: none;
   }
 }
