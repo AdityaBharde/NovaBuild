@@ -458,6 +458,13 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   </section>
                 )}
 
+                {canRetry && (
+                  <button type="button" className="nb-chat-retry" onClick={() => onRetry?.(msg)}>
+                    <RotateCw className="w-3.5 h-3.5" />
+                    Retry response
+                  </button>
+                )}
+
                 {/* 4. ASSISTANT TEXT / MARKDOWN */}
                 {(displayContent || (!steps.length && isStreamingThis)) && (
                   <div className="nb-chat-response text-text-primary leading-relaxed">
