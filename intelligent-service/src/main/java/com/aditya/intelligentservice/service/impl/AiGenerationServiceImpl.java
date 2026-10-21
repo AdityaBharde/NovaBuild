@@ -504,20 +504,10 @@ public class AiGenerationServiceImpl implements AiGenerationService {
             return;
         }
 
-        // 2. Check for tsx/jsx code blocks if user asked for a component or hero section
-        java.util.regex.Pattern reactPattern = java.util.regex.Pattern.compile(
-                "```(?:tsx|jsx|typescript|javascript)?\\s*([\\s\\S]*?)\\s*```"
-        );
-        java.util.regex.Matcher reactMatcher = reactPattern.matcher(rawText);
-        if (reactMatcher.find()) {
-            String code = reactMatcher.group(1).trim();
-            if (code.contains("import") || code.contains("export default") || code.contains("return (") || code.contains("return <")) {
-                String targetPath = userMessage.toLowerCase().contains("hero") ? "src/components/Hero.tsx"
-                        : userMessage.toLowerCase().contains("form") ? "src/components/Form.tsx"
-                        : "src/App.tsx";
-                saveExtractedFile(projectId, targetPath, code, persistedFiles, sink);
-            }
-        }
+        // React snippets are intentionally not written to guessed paths.
+        // A component saved as Hero.tsx is not necessarily imported by the app,
+        // so this fallback previously reported success for code that never rendered.
+        // Ask the agent protocol to provide explicit <file path="..."> payloads instead.
     }
 
     private void saveExtractedFile(
