@@ -439,9 +439,6 @@
     overscroll-behavior-y: contain;
   }
 
-  .app-main-workspace {
-    padding-bottom: calc(66px + env(safe-area-inset-bottom));
-  }
 
   .app-main-scroll > div {
     max-width: 100%;
