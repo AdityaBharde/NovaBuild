@@ -250,6 +250,12 @@ export async function saveFileContent(projectId: string | number, path: string, 
     body: content,
   });
   if (!res.ok) throw new Error(`Unable to save ${path} (${res.status}): ${await readApiError(res)}`);
+
+  // Confirm the write is visible through the read path before telling the editor it is saved.
+  const persisted = await getFileContent(projectId, path);
+  if (persisted !== content) {
+    throw new Error(`The server accepted the save for ${path}, but the saved content did not match when read back. Your changes are still marked unsaved.`);
+  }
 }
 
 export async function deleteFile(projectId: string | number, path: string): Promise<void> {
