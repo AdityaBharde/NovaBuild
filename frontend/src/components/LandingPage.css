@@ -81,6 +81,9 @@
    make their movement visible without sending the circles into an orbit. */
 .landing-page .big-circle,
 .landing-page .small-circle {
+  /* Static positioning keeps both circles on the exact same center. */
+  transform: translate(-50%, -50%);
+  animation: none;
   background: none;
   overflow: visible;
   isolation: isolate;
