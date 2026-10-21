@@ -73,6 +73,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 
   // Layout view controls
   const [showFileTree, setShowFileTree] = useState(() => window.innerWidth > 860);
@@ -139,6 +140,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
   const loadWorkspace = async (projId: string) => {
     setIsLoadingWorkspace(true);
+    setWorkspaceError(null);
     try {
       // 1. Fetch project meta
       const p = await getProjectById(projId);
@@ -201,7 +203,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         );
       }
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unknown workspace loading error';
       console.error('Error loading workspace:', e);
+      setWorkspaceError(message);
     } finally {
       setIsLoadingWorkspace(false);
     }
@@ -225,8 +229,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         );
         setActiveFile(updated);
       } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown file read error';
         console.error('Failed to fetch file content', e);
-        setActiveFile(file);
+        setWorkspaceError(message);
+        setActiveFile(null);
       }
     } else {
       setActiveFile(file);
@@ -267,7 +273,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       await saveFileContent(activeProjectId, activeFile.filePath, activeFile.content);
       const saved = { ...activeFile, isModified: false };
       setActiveFile(saved);
-      setHasUnsavedChanges(false);
+      setHasUnsavedChanges(files.some((file) => file.filePath !== activeFile.filePath && file.isModified));
+      setWorkspaceError(null);
       setFiles((prev) =>
         prev.map((f) => (f.filePath === activeFile.filePath ? saved : f))
       );
@@ -275,7 +282,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         prev.map((t) => (t.filePath === activeFile.filePath ? saved : t))
       );
     } catch (e) {
-      alert('Failed to save file content');
+      const message = e instanceof Error ? e.message : 'Unknown save error';
+      setWorkspaceError(message);
+      console.error('Failed to save file:', e);
+      alert(message);
     } finally {
       setIsSaving(false);
     }
@@ -295,7 +305,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       setNewFileModalOpen(false);
       setNewFilePath('');
     } catch (e) {
-      alert('Failed to create file');
+      const message = e instanceof Error ? e.message : 'Unknown file creation error';
+      setWorkspaceError(message);
+      alert(message);
     }
   };
 
@@ -312,7 +324,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       }
       setFileToDelete(null);
     } catch (e) {
-      alert('Failed to delete file');
+      const message = e instanceof Error ? e.message : 'Unknown file deletion error';
+      setWorkspaceError(message);
+      alert(message);
     } finally {
       setIsDeletingFile(false);
     }
@@ -682,6 +696,14 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
   return (
     <div className="novabuild-workspace flex flex-col h-full w-full bg-background font-sans text-text-primary overflow-hidden">
+      {workspaceError && (
+        <div role="alert" className="mx-3 mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          <div className="flex items-start justify-between gap-3">
+            <span>{workspaceError}</span>
+            <button type="button" onClick={() => setWorkspaceError(null)} className="shrink-0 underline">Dismiss</button>
+          </div>
+        </div>
+      )}
       {/* Workspace Action Bar */}
       <div className="h-11 border-b border-border bg-surface flex items-center justify-between px-4 shrink-0 text-xs">
         {/* Left: Project & Breadcrumbs */}
