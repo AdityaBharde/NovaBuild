@@ -454,3 +454,55 @@
 .nb-file-open { margin: 0 8px 8px; padding: 5px 8px; border: 1px solid var(--chat-border); border-radius: 6px; color: #dcd4ff; font-size: 10px; }
 .nb-file-open:hover { border-color: #8b6bfa; }
 @media (max-width: 560px) { .nb-file-diff { grid-template-columns: 1fr; } .nb-file-diff > div + div { border-left: 0; border-top: 1px solid rgba(63, 76, 108, .35); } }
+
+
+/* Readability pass: prioritize conversation content over decorative surfaces. */
+.nb-chat {
+  --chat-panel: #111018;
+  --chat-raised: #17151f;
+  --chat-border: rgba(210, 199, 238, 0.12);
+  --chat-text: #f4f3f8;
+  --chat-muted: #a29daf;
+  --chat-accent: #a78bfa;
+  font-family: var(--nb-font-sans, Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  letter-spacing: -0.008em;
+}
+.nb-chat-response {
+  max-width: 76ch;
+  color: #e4e1ec;
+  font-size: 14px;
+  line-height: 1.78;
+  overflow-wrap: anywhere;
+}
+.nb-chat-response :is(h1, h2, h3, h4) {
+  color: #faf9fc;
+  font-weight: 620;
+  letter-spacing: -0.035em;
+  line-height: 1.3;
+}
+.nb-chat-response :is(ul, ol) { padding-left: 1.35rem; }
+.nb-chat-response li + li { margin-top: 0.28rem; }
+.nb-chat-response :not(pre) > code {
+  padding: 0.12em 0.35em;
+  border: 1px solid var(--chat-border);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.035);
+  color: #d8c9ff;
+  font-family: var(--nb-font-mono, "SFMono-Regular", Consolas, monospace);
+  font-size: 0.9em;
+}
+.nb-chat pre {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--chat-border);
+  border-radius: 7px;
+  background: #0b0a10;
+}
+.nb-chat :is(button, textarea, input):focus-visible {
+  outline: 2px solid rgba(167, 139, 250, 0.72);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .nb-chat-response { max-width: 100%; font-size: 14px; }
+  .nb-chat-transcript { scrollbar-gutter: auto; }
+}

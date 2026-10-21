@@ -303,3 +303,28 @@
 @media (prefers-reduced-motion: reduce) {
   .novabuild-workspace *, .novabuild-workspace *::before, .novabuild-workspace *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; }
 }
+
+
+/* Landing-page-inspired workspace tokens: atmosphere stays in the background. */
+.novabuild-workspace {
+  --workspace-bg: #0d0c12;
+  --workspace-surface: #111018;
+  --workspace-elevated: #17151f;
+  --workspace-border: rgba(210, 199, 238, 0.12);
+  --workspace-muted: #898596;
+  --workspace-text: #f4f3f8;
+  --workspace-accent: #a78bfa;
+  font-family: var(--nb-font-sans, Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  letter-spacing: -0.01em;
+}
+.novabuild-workspace :is(button, input, textarea, select) { font: inherit; }
+.novabuild-workspace :is(.workspace-files-panel, .workspace-chat-panel) { border-color: var(--workspace-border); }
+.novabuild-workspace :is(.workspace-header, .workspace-toolbar) { border-color: var(--workspace-border); }
+.novabuild-workspace :is(.workspace-file-name, .workspace-tab, .workspace-panel-title) { letter-spacing: -0.015em; }
+@media (max-width: 640px) {
+  .novabuild-workspace { min-height: 0; overflow: hidden; }
+  .novabuild-workspace .workspace-panels { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .novabuild-workspace *, .novabuild-workspace *::before, .novabuild-workspace *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
