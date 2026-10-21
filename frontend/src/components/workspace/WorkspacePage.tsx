@@ -395,6 +395,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       const decoder = new TextDecoder();
       let accumulated = '';
       let messageContent = '';
+      let streamError: string | null = null;
+      const streamStartedAt = Date.now();
 
       const updateAssistantMessage = () => {
         setMessages((prev) =>
@@ -414,9 +416,12 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
-
-        accumulated += decoder.decode(value, { stream: true });
+        if (done) {
+          accumulated += decoder.decode();
+          if (accumulated && !accumulated.endsWith('\n')) accumulated += '\n';
+        } else {
+          accumulated += decoder.decode(value, { stream: true });
+        }
 
         let newlineIndex: number;
         while ((newlineIndex = accumulated.indexOf('\n')) !== -1) {
@@ -605,9 +610,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                     break;
 
                   case 'message_complete':
-                    executionSteps.forEach((s) => {
-                      if (s.status === 'running') s.status = 'completed';
-                    });
+                    if (!streamError) {
+                      executionSteps.forEach((s) => {
+                        if (s.status === 'running') s.status = 'completed';
+                      });
+                    }
                     setFiles((prev) => prev.map((f) => ({ ...f, isGenerating: false })));
                     setCurrentStatus(null);
                     updateAssistantMessage();
@@ -615,6 +622,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
                   case 'error':
                     const errMsg = data.error || 'Failed';
+                    streamError = errMsg;
                     setCurrentStatus(`Error: ${errMsg}`);
                     const activeStep = executionSteps.filter((x) => x.status === 'running').pop();
                     if (activeStep) {
@@ -626,11 +634,26 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                 }
               }
             } catch (e) {
-              // Ignore partial chunk parsing
+              const detail = e instanceof Error ? e.message : 'Invalid stream event';
+              streamError = `NovaAI sent an unreadable stream event: ${detail}`;
+              console.error(streamError, line);
             }
           }
         }
+        if (done) break;
       }
+
+      // Do not present a partial/error stream as successful completion.
+      if (streamError) {
+        executionSteps.forEach((step) => {
+          if (step.status === 'running') { step.status = 'error'; step.detail = streamError || 'Generation failed'; }
+        });
+        setMessages((prev) => prev.map((m) => m.id === assistantMsgId
+          ? { ...m, content: m.content || `NovaAI could not complete this request: ${streamError}`, error: true, steps: [...executionSteps] }
+          : m));
+      }
+      const streamDurationMs = Date.now() - streamStartedAt;
+      console.info('NovaAI stream finished', { durationMs: streamDurationMs, hasError: Boolean(streamError), filesChanged: createdFilesSet.size });
 
       // Refresh files after generation
       try {
@@ -645,7 +668,13 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           return updated;
         });
       } catch (err) {
-        console.warn('Could not refresh files after generation:', err);
+        const message = err instanceof Error ? err.message : 'Could not refresh project files after generation';
+        console.error('Could not refresh files after generation:', err);
+        setWorkspaceError(message);
+        streamError = streamError || message;
+        setMessages((prev) => prev.map((m) => m.id === assistantMsgId
+          ? { ...m, content: m.content || `Files may have been generated, but the workspace could not be refreshed: ${message}`, error: true }
+          : m));
       }
     } catch (e: any) {
       const wasAborted = e?.name === 'AbortError';
