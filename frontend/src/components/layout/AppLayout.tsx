@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, useOutlet } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom';
 import { AnimatePresence } from 'motion/react';
 import { PageTransition } from '../common/PageTransition';
 import { Sidebar } from './Sidebar';
@@ -7,7 +7,7 @@ import { Header } from './Header';
 import { Modal } from '../common/Modal';
 import { User, Project, Subscription } from '../../types';
 import { createProject } from '../../api/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Home, FolderGit2, Code2, Settings } from 'lucide-react';
 
 interface AppLayoutProps {
   user: User;
@@ -77,8 +77,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     }
   };
 
+  const mobileNavItems = [
+    { label: 'Home', to: '/dashboard/home', icon: Home, exact: false },
+    { label: 'Projects', to: '/projects', icon: FolderGit2, exact: false },
+    ...(activeProject ? [{ label: 'Workspace', to: `/workspace/${activeProject.id}`, icon: Code2, exact: false }] : []),
+    { label: 'Settings', to: '/settings', icon: Settings, exact: false },
+  ];
+
   return (
-    <div className="relative z-10 flex h-screen w-screen overflow-hidden bg-[var(--bg-app)]/90 backdrop-blur-[2px] font-sans text-text-primary antialiased transition-colors duration-200">
+    <div className="app-shell relative z-10 flex h-screen w-screen overflow-hidden bg-[var(--bg-app)]/90 backdrop-blur-[2px] font-sans text-text-primary antialiased transition-colors duration-200">
       {/* Persistent Left Sidebar */}
       <Sidebar
         user={user}
@@ -90,7 +97,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       />
 
       {/* Main App Container */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="app-main-column flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header
           user={user}
           subscription={subscription}
@@ -101,7 +108,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onLogout={onLogout}
         />
 
-        <main className={`relative flex-1 min-h-0 bg-transparent ${location.pathname.includes('/workspace') ? 'overflow-hidden flex flex-col h-full' : 'overflow-y-auto custom-scrollbar'}`}>
+        <main className={`app-main relative flex-1 min-h-0 bg-transparent ${location.pathname.includes('/workspace') ? 'app-main-workspace overflow-hidden flex flex-col h-full' : 'app-main-scroll overflow-y-auto custom-scrollbar'}`}>
           {location.pathname.includes('/workspace') ? (
             <div className="relative z-10 h-full w-full flex-1 flex flex-col min-h-0 overflow-hidden">{outlet}</div>
           ) : (
@@ -113,6 +120,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           )}
         </main>
       </div>
+
+      {/* Compact mobile navigation; desktop keeps the persistent sidebar. */}
+      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+        {mobileNavItems.map(({ label, to, icon: Icon }) => (
+          <NavLink
+            key={label}
+            to={to}
+            className={({ isActive }) => `mobile-bottom-nav-item ${isActive ? 'is-active' : ''}`}
+            aria-label={label}
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </nav>
 
       {/* Global New Project Modal */}
       <Modal

@@ -75,8 +75,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Layout view controls
-  const [showFileTree, setShowFileTree] = useState(true);
-  const [showChat, setShowChat] = useState(true);
+  const [showFileTree, setShowFileTree] = useState(() => window.innerWidth > 860);
+  const [showChat, setShowChat] = useState(() => window.innerWidth > 860);
   const [showPreview, setShowPreview] = useState(false);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(248);
@@ -743,7 +743,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
           {/* Panel toggles */}
           <button
-            onClick={() => setShowFileTree(!showFileTree)}
+            onClick={() => {
+              if (window.innerWidth <= 860 && !showFileTree) setShowChat(false);
+              setShowFileTree(!showFileTree);
+            }}
             className={`p-1 rounded transition-colors ${
               showFileTree
                 ? 'text-accent bg-surface-elevated'
@@ -758,7 +761,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
             )}
           </button>
           <button
-            onClick={() => setShowChat(!showChat)}
+            onClick={() => {
+              if (window.innerWidth <= 860 && !showChat) setShowFileTree(false);
+              setShowChat(!showChat);
+            }}
             className={`p-1 rounded transition-colors ${
               showChat
                 ? 'text-accent bg-surface-elevated'
