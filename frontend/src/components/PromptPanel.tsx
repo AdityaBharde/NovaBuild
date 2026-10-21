@@ -441,11 +441,15 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                   />
                 )}
 
-                {/* 2. ACTIVE PROGRESS FALLBACK */}
-                {isStreamingThis && !steps.some((s) => s.status === 'running') && (
-                  <div className="nb-chat-progress flex items-center gap-2 py-2 px-3 rounded-xl text-xs text-text-secondary">
-                    <LoaderCircle className="w-3.5 h-3.5 animate-spin text-accent shrink-0" />
-                    <span className="truncate">{currentStatus || 'Working on your request...'}</span>
+                {/* One clear live status surface; do not repeat it as italic transcript text. */}
+                {isStreamingThis && !displayContent && !steps.some((s) => s.status === 'running') && (
+                  <div className="nb-chat-progress" role="status" aria-live="polite">
+                    <span className="nb-chat-progress-indicator" aria-hidden="true" />
+                    <div className="nb-chat-progress-copy">
+                      <span className="nb-chat-progress-label">In progress</span>
+                      <span className="nb-chat-progress-message">{currentStatus || 'Preparing your changes…'}</span>
+                      <span className="nb-chat-progress-hint">NovaAI will show updates here as it works.</span>
+                    </div>
                   </div>
                 )}
 
@@ -466,15 +470,9 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
                 )}
 
                 {/* 4. ASSISTANT TEXT / MARKDOWN */}
-                {(displayContent || (!steps.length && isStreamingThis)) && (
+                {displayContent && (
                   <div className="nb-chat-response text-text-primary leading-relaxed">
-                    {displayContent ? (
-                      <MarkdownContent content={displayContent} />
-                    ) : (
-                      <span className="nb-chat-thinking text-xs">
-                        {currentStatus || 'Preparing a response…'}
-                      </span>
-                    )}
+                    <MarkdownContent content={displayContent} />
                     {isStreamingThis && (
                       <span className="nb-chat-cursor inline-block w-1.5 h-4 ml-1 align-middle" />
                     )}

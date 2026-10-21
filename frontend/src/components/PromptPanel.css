@@ -506,3 +506,54 @@
   .nb-chat-response { max-width: 100%; font-size: 14px; }
   .nb-chat-transcript { scrollbar-gutter: auto; }
 }
+
+
+/* One calm, explicit progress surface while the model has not started answering. */
+.nb-chat-progress {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: 10px;
+  background: rgba(167, 139, 250, 0.045);
+}
+.nb-chat-progress-indicator {
+  position: relative;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #b6a0ff;
+}
+.nb-chat-progress-indicator::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(182, 160, 255, 0.45);
+  border-radius: 50%;
+  animation: nb-progress-pulse 1.8s ease-out infinite;
+}
+.nb-chat-progress-copy { display: grid; min-width: 0; gap: 3px; }
+.nb-chat-progress-label {
+  color: #b6a0ff;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.nb-chat-progress-message {
+  color: #f0edf8;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.nb-chat-progress-hint { color: #8f899e; font-size: 10px; line-height: 1.45; }
+@keyframes nb-progress-pulse {
+  0% { transform: scale(.7); opacity: .7; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nb-chat-progress-indicator::after { animation: none; }
+}
