@@ -8,6 +8,7 @@ import {
   SandboxStatus,
   StreamEvent,
   ExecutionStep,
+  ChatFileChange,
 } from '../../types';
 import {
   getProjectById,
@@ -21,7 +22,7 @@ import {
   CHAT_STREAM_URL,
 } from '../../api/client';
 import { CodeEditor } from '../CodeEditor';
-import { PromptPanel } from '../PromptPanel';
+import { PromptPanel, sanitizeMessageText } from '../PromptPanel';
 import { PreviewWindow } from '../PreviewWindow';
 import { Modal } from '../common/Modal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -117,6 +118,19 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [isDeletingFile, setIsDeletingFile] = useState(false);
   const chatAbortController = useRef<AbortController | null>(null);
+  const activeReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const activeRequestIdRef = useRef<string | null>(null);
+  const pendingUpdateRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingUpdateRafRef.current) {
+        cancelAnimationFrame(pendingUpdateRafRef.current);
+      }
+      chatAbortController.current?.abort();
+      activeReaderRef.current?.cancel().catch(() => {});
+    };
+  }, []);
 
   const activeProjectId = routeProjectId || (project ? String(project.id) : '');
 
@@ -349,36 +363,122 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
     }
   };
 
-  // Real AI streaming with incremental protocol parsing
-  const handleSendPrompt = async (promptText: string) => {
+  const handleStopGeneration = () => {
+    chatAbortController.current?.abort();
+    activeReaderRef.current?.cancel().catch(() => {});
+    activeReaderRef.current = null;
+  };
+
+  const handleRetry = (failedMsg: ChatMessage) => {
+    if (isStreaming) return;
+    const messageIndex = messages.findIndex((m) => m.id === failedMsg.id);
+    if (messageIndex === -1) return;
+
+    let previousUserPrompt = '';
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'USER') {
+        previousUserPrompt = messages[i].content;
+        break;
+      }
+    }
+
+    if (!previousUserPrompt) return;
+
+    // Remove the failed assistant message; user message is preserved
+    setMessages((current) => current.filter((m) => m.id !== failedMsg.id));
+    void handleSendPrompt(previousUserPrompt, true);
+  };
+
+  const handleResetChat = () => {
+    if (!isStreaming) {
+      setMessages([]);
+      setCurrentStatus(null);
+    }
+  };
+
+  // Real AI streaming with incremental protocol parsing & batching
+  const handleSendPrompt = async (promptText: string, isRetry = false) => {
+    const trimmed = promptText.trim();
+    if (!trimmed || isStreaming) return;
+
+    const userMsgId = `user-${Date.now()}`;
+    const assistantMsgId = `assistant-${Date.now() + 1}`;
+    activeRequestIdRef.current = assistantMsgId;
+
     const userMsg: ChatMessage = {
-      id: String(Date.now()),
+      id: userMsgId,
       role: 'USER',
-      content: promptText,
+      content: trimmed,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-    setMessages((prev) => [...prev, userMsg]);
+
+    const initialAssistantMsg: ChatMessage = {
+      id: assistantMsgId,
+      role: 'ASSISTANT',
+      content: '',
+      steps: [],
+      fileChanges: [],
+      filesCreated: [],
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    if (isRetry) {
+      setMessages((prev) => [...prev, initialAssistantMsg]);
+    } else {
+      setMessages((prev) => [...prev, userMsg, initialAssistantMsg]);
+    }
+
     setIsStreaming(true);
     setCurrentStatus('Planning next steps...');
 
-    const assistantMsgId = String(Date.now() + 1);
     const executionSteps: ExecutionStep[] = [];
+    const fileChanges: ChatFileChange[] = [];
     const createdFilesSet = new Set<string>();
+    let messageContent = '';
+    let streamError: string | null = null;
+    let lastFlushTime = 0;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: assistantMsgId,
-        role: 'ASSISTANT',
-        content: '',
-        steps: executionSteps,
-        filesCreated: [],
-      },
-    ]);
+    const flushAssistantMessage = (force = false) => {
+      if (activeRequestIdRef.current !== assistantMsgId) return;
+
+      const now = performance.now();
+      if (!force && now - lastFlushTime < 32) {
+        if (!pendingUpdateRafRef.current) {
+          pendingUpdateRafRef.current = requestAnimationFrame(() => {
+            pendingUpdateRafRef.current = null;
+            flushAssistantMessage(true);
+          });
+        }
+        return;
+      }
+
+      lastFlushTime = now;
+      if (pendingUpdateRafRef.current) {
+        cancelAnimationFrame(pendingUpdateRafRef.current);
+        pendingUpdateRafRef.current = null;
+      }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content: messageContent,
+                steps: [...executionSteps],
+                fileChanges: [...fileChanges],
+                filesCreated: Array.from(createdFilesSet),
+                error: Boolean(streamError),
+              }
+            : m
+        )
+      );
+    };
 
     try {
       const token = localStorage.getItem('novabuild_token') || '';
       const controller = new AbortController();
       chatAbortController.current = controller;
+
       const response = await fetch(CHAT_STREAM_URL, {
         method: 'POST',
         signal: controller.signal,
@@ -386,7 +486,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ message: promptText, projectId: activeProjectId }),
+        body: JSON.stringify({ message: trimmed, projectId: activeProjectId }),
       });
 
       if (!response.ok) {
@@ -396,30 +496,16 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       if (!response.body) throw new Error('No readable stream received from server');
 
       const reader = response.body.getReader();
+      activeReaderRef.current = reader;
       const decoder = new TextDecoder();
       let accumulated = '';
-      let messageContent = '';
-      let streamError: string | null = null;
-      const streamStartedAt = Date.now();
-
-      const updateAssistantMessage = () => {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? {
-                  ...m,
-                  content: messageContent,
-                  steps: [...executionSteps],
-                  filesCreated: Array.from(createdFilesSet),
-                  ...(executionSteps.some((step) => step.status === 'error') ? { error: true } : {}),
-                }
-              : m
-          )
-        );
-      };
 
       while (true) {
         const { value, done } = await reader.read();
+        if (activeRequestIdRef.current !== assistantMsgId) {
+          break;
+        }
+
         if (done) {
           accumulated += decoder.decode();
           if (accumulated && !accumulated.endsWith('\n')) accumulated += '\n';
@@ -440,12 +526,18 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                 const eventType = data.type || (data.text ? 'text_delta' : 'status');
 
                 switch (eventType) {
+                  case 'message_start':
+                    setCurrentStatus('Analyzing request...');
+                    flushAssistantMessage(true);
+                    break;
+
                   case 'status':
                     if (data.status) {
-                      const s = data.status;
+                      const s = data.status.trim();
                       setCurrentStatus(s);
 
-                      if (s.toLowerCase().startsWith('planning:')) {
+                      const sLower = s.toLowerCase();
+                      if (sLower.startsWith('planning:')) {
                         const existingPlan = executionSteps.find((x) => x.type === 'planning');
                         const detailText = s.replace(/^planning:\s*/i, '');
                         if (existingPlan) {
@@ -453,17 +545,16 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                           existingPlan.status = 'completed';
                         } else {
                           executionSteps.push({
-                            id: 'plan-' + Date.now(),
+                            id: `plan-${Date.now()}`,
                             type: 'planning',
-                            title: 'Planning Architecture',
+                            title: 'Planning architecture',
                             detail: detailText,
                             status: 'completed',
                             timestamp: Date.now(),
                           });
                         }
-                      } else if (s.toLowerCase().startsWith('generating ')) {
+                      } else if (sLower.startsWith('generating ')) {
                         const genPath = s.replace(/^generating\s*/i, '').replace(/\.\.\.*$/, '').trim();
-                        // Mark file generating in sidebar immediately
                         setFiles((prev) => {
                           const idx = prev.findIndex((f) => f.filePath === genPath);
                           if (idx >= 0) {
@@ -474,34 +565,33 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                           return [...prev, { filePath: genPath, content: '', isGenerating: true }];
                         });
 
-                        const existingFileStep = executionSteps.find((x) => x.id === 'gen-' + genPath);
+                        const existingFileStep = executionSteps.find((x) => x.id === `gen-${genPath}`);
                         if (!existingFileStep) {
                           executionSteps.push({
-                            id: 'gen-' + genPath,
+                            id: `gen-${genPath}`,
                             type: 'file',
-                            title: `Generating ${genPath}...`,
+                            title: `Generating ${genPath}`,
                             status: 'running',
                             timestamp: Date.now(),
                           });
                         }
-                      } else if (s.toLowerCase().startsWith('saving ')) {
+                      } else if (sLower.startsWith('saving ')) {
                         const savePath = s.replace(/^saving\s*/i, '').replace(/\.\.\.*$/, '').trim();
-                        const existingStep = executionSteps.find((x) => x.id === 'gen-' + savePath);
+                        const existingStep = executionSteps.find((x) => x.id === `gen-${savePath}`);
                         if (existingStep) {
-                          existingStep.title = `Saving ${savePath}...`;
+                          existingStep.title = `Saving ${savePath}`;
                         }
-                      } else if (s.toLowerCase().startsWith('saved ')) {
+                      } else if (sLower.startsWith('saved ')) {
                         const savedPath = s.replace(/^saved\s*/i, '').trim();
-                        const existingStep = executionSteps.find((x) => x.id === 'gen-' + savedPath);
+                        const existingStep = executionSteps.find((x) => x.id === `gen-${savedPath}`);
                         if (existingStep) {
                           existingStep.title = `Saved ${savedPath}`;
                           existingStep.status = 'completed';
                         }
                       } else {
-                        // Add status activity step if meaningful
                         if (!executionSteps.some((x) => x.title === s)) {
                           executionSteps.push({
-                            id: 'status-' + Date.now(),
+                            id: `status-${Date.now()}`,
                             type: 'status',
                             title: s,
                             status: 'completed',
@@ -509,7 +599,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                           });
                         }
                       }
-                      updateAssistantMessage();
+                      flushAssistantMessage(true);
                     }
                     break;
 
@@ -517,9 +607,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                     if (data.tool) {
                       const toolName = data.tool;
                       const toolLabel = toolName.toLowerCase();
-                      let friendlyTitle = 'Running a project tool';
+                      let friendlyTitle = `Running ${toolName}`;
                       if (toolLabel.includes('structure') || toolLabel.includes('tree')) {
-                        friendlyTitle = 'Analyzing project structure & files';
+                        friendlyTitle = 'Analyzing project structure';
                       } else if (toolLabel.includes('read')) {
                         friendlyTitle = 'Reading project context';
                       } else if (toolLabel.includes('save') || toolLabel.includes('create')) {
@@ -531,11 +621,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                         id: `tool-${toolName}-${Date.now()}`,
                         type: 'tool',
                         title: friendlyTitle,
-                        detail: 'Tool arguments are hidden because they may contain project data or secrets.',
+                        detail: data.args ? `Arguments: ${data.args}` : undefined,
                         status: 'running',
                         timestamp: Date.now(),
                       });
-                      updateAssistantMessage();
+                      flushAssistantMessage(true);
                     }
                     break;
 
@@ -545,17 +635,19 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                         .filter((x) => x.type === 'tool' && x.status === 'running')
                         .pop();
                       if (runningTool) {
-                        runningTool.status = 'completed';
+                        runningTool.status = data.success === false ? 'error' : 'completed';
+                        if (data.result) {
+                          runningTool.detail = data.result;
+                        }
                       }
-                      setCurrentStatus('Finished tool execution');
-                      updateAssistantMessage();
+                      flushAssistantMessage(true);
                     }
                     break;
 
                   case 'text_delta':
                     if (data.text) {
                       messageContent += data.text;
-                      updateAssistantMessage();
+                      flushAssistantMessage(false);
                     }
                     break;
 
@@ -565,6 +657,23 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                       const changedContent = data.content;
                       createdFilesSet.add(changedPath);
 
+                      const prevFile = files.find((f) => f.filePath === changedPath);
+                      const prevContent = prevFile?.content;
+
+                      const changeRecord: ChatFileChange = {
+                        path: changedPath,
+                        action: prevFile ? 'updated' : ((data.action as any) || 'created'),
+                        previousContent: prevContent,
+                        content: changedContent,
+                      };
+
+                      const existingIdx = fileChanges.findIndex((c) => c.path === changedPath);
+                      if (existingIdx >= 0) {
+                        fileChanges[existingIdx] = changeRecord;
+                      } else {
+                        fileChanges.push(changeRecord);
+                      }
+
                       const newFileObj: ProjectFile = {
                         filePath: changedPath,
                         content: changedContent,
@@ -572,10 +681,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                       };
 
                       setFiles((prev) => {
-                        const existingIdx = prev.findIndex((f) => f.filePath === changedPath);
-                        if (existingIdx >= 0) {
+                        const fileIdx = prev.findIndex((f) => f.filePath === changedPath);
+                        if (fileIdx >= 0) {
                           const updated = [...prev];
-                          updated[existingIdx] = newFileObj;
+                          updated[fileIdx] = newFileObj;
                           return updated;
                         }
                         return [...prev, newFileObj];
@@ -583,7 +692,6 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
                       setActiveFile(newFileObj);
 
-                      // Ensure tab is open
                       setOpenTabs((prev) => {
                         if (!prev.find((t) => t.filePath === changedPath)) {
                           return [...prev, newFileObj];
@@ -591,16 +699,15 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                         return prev.map((t) => (t.filePath === changedPath ? newFileObj : t));
                       });
 
-                      // Mark file step completed
-                      const fStep = executionSteps.find((x) => x.id === 'gen-' + changedPath);
+                      const fStep = executionSteps.find((x) => x.id === `gen-${changedPath}`);
                       if (fStep) {
-                        fStep.title = `Created ${changedPath}`;
+                        fStep.title = `Saved ${changedPath}`;
                         fStep.status = 'completed';
                       } else {
                         executionSteps.push({
-                          id: 'gen-' + changedPath,
+                          id: `gen-${changedPath}`,
                           type: 'file',
-                          title: `Created ${changedPath}`,
+                          title: `Saved ${changedPath}`,
                           status: 'completed',
                           timestamp: Date.now(),
                         });
@@ -609,19 +716,18 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                       if (changedPath.endsWith('.html')) {
                         setShowPreview(true);
                       }
-                      updateAssistantMessage();
+
+                      flushAssistantMessage(true);
                     }
                     break;
 
                   case 'message_complete':
-                    if (!streamError) {
-                      executionSteps.forEach((s) => {
-                        if (s.status === 'running') s.status = 'completed';
-                      });
-                    }
+                    executionSteps.forEach((s) => {
+                      if (s.status === 'running') s.status = 'completed';
+                    });
                     setFiles((prev) => prev.map((f) => ({ ...f, isGenerating: false })));
                     setCurrentStatus(null);
-                    updateAssistantMessage();
+                    flushAssistantMessage(true);
                     break;
 
                   case 'error':
@@ -633,13 +739,13 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
                       activeStep.status = 'error';
                       activeStep.detail = errMsg;
                     }
-                    updateAssistantMessage();
+                    flushAssistantMessage(true);
                     break;
                 }
               }
             } catch (e) {
               const detail = e instanceof Error ? e.message : 'Invalid stream event';
-              streamError = `NovaAI sent an unreadable stream event: ${detail}`;
+              streamError = `NovaAI stream event error: ${detail}`;
               console.error(streamError, line);
             }
           }
@@ -647,17 +753,45 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         if (done) break;
       }
 
-      // Do not present a partial/error stream as successful completion.
-      if (streamError) {
-        executionSteps.forEach((step) => {
-          if (step.status === 'running') { step.status = 'error'; step.detail = streamError || 'Generation failed'; }
+      if (activeRequestIdRef.current === assistantMsgId) {
+        // Complete any still running steps
+        executionSteps.forEach((s) => {
+          if (s.status === 'running') {
+            s.status = streamError ? 'error' : 'completed';
+          }
         });
-        setMessages((prev) => prev.map((m) => m.id === assistantMsgId
-          ? { ...m, content: m.content || `NovaAI could not complete this request: ${streamError}`, error: true, steps: [...executionSteps] }
-          : m));
+
+        // Resolve final content and empty response state
+        const cleaned = sanitizeMessageText(messageContent);
+        let finalContent = messageContent;
+
+        if (streamError) {
+          finalContent = messageContent || `Generation error: ${streamError}`;
+        } else if (!cleaned) {
+          if (fileChanges.length > 0) {
+            finalContent = `Successfully applied changes to ${fileChanges.length} file${fileChanges.length === 1 ? '' : 's'}. You can review the files above or open them directly in the editor.`;
+          } else {
+            finalContent = '';
+          }
+        }
+
+        const isUnsuccessful = Boolean(streamError || (!cleaned && fileChanges.length === 0));
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? {
+                  ...m,
+                  content: finalContent,
+                  steps: [...executionSteps],
+                  fileChanges: [...fileChanges],
+                  filesCreated: Array.from(createdFilesSet),
+                  error: isUnsuccessful,
+                }
+              : m
+          )
+        );
       }
-      const streamDurationMs = Date.now() - streamStartedAt;
-      console.info('NovaAI stream finished', { durationMs: streamDurationMs, hasError: Boolean(streamError), filesChanged: createdFilesSet.size });
 
       // Refresh files after generation
       try {
@@ -672,34 +806,43 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           return updated;
         });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Could not refresh project files after generation';
         console.error('Could not refresh files after generation:', err);
-        setWorkspaceError(message);
-        streamError = streamError || message;
-        setMessages((prev) => prev.map((m) => m.id === assistantMsgId
-          ? { ...m, content: m.content || `Files may have been generated, but the workspace could not be refreshed: ${message}`, error: true }
-          : m));
       }
     } catch (e: any) {
-      const wasAborted = e?.name === 'AbortError';
+      const wasAborted = e?.name === 'AbortError' || chatAbortController.current?.signal.aborted;
       if (!wasAborted) console.error('Streaming error:', e);
-      setCurrentStatus(null);
+
       setFiles((prev) => prev.map((f) => ({ ...f, isGenerating: false })));
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantMsgId
-            ? {
-                ...m,
-                content: m.content || (wasAborted ? 'Generation stopped.' : `Failed to generate response: ${e.message || 'Network error'}`),
-                ...(wasAborted ? {} : { error: true }),
-              }
-            : m
-        )
-      );
+
+      if (activeRequestIdRef.current === assistantMsgId) {
+        executionSteps.forEach((s) => {
+          if (s.status === 'running') {
+            s.status = wasAborted ? 'completed' : 'error';
+          }
+        });
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? {
+                  ...m,
+                  content: m.content || (wasAborted ? 'Generation stopped.' : `Failed to generate response: ${e.message || 'Network error'}`),
+                  steps: [...executionSteps],
+                  fileChanges: [...fileChanges],
+                  filesCreated: Array.from(createdFilesSet),
+                  error: !wasAborted,
+                }
+              : m
+          )
+        );
+      }
     } finally {
+      if (activeRequestIdRef.current === assistantMsgId) {
+        setIsStreaming(false);
+        setCurrentStatus(null);
+      }
       chatAbortController.current = null;
-      setIsStreaming(false);
-      setCurrentStatus(null);
+      activeReaderRef.current = null;
     }
   };
 
@@ -1047,22 +1190,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
               messages={messages}
               isStreaming={isStreaming}
               currentStatus={currentStatus}
-              onSendPrompt={handleSendPrompt}
-              onStopGeneration={() => chatAbortController.current?.abort()}
-              onRetry={(message) => {
-                const messageIndex = messages.findIndex((item) => item.id === message.id);
-                const previousMessage = messageIndex > 0 ? messages[messageIndex - 1] : undefined;
-                if (previousMessage?.role === 'USER' && !isStreaming) {
-                  setMessages((current) => current.filter((item) => item.id !== message.id));
-                  void handleSendPrompt(previousMessage.content);
-                }
-              }}
-              onResetChat={() => {
-                if (!isStreaming) {
-                  setMessages([]);
-                  setCurrentStatus(null);
-                }
-              }}
+              onSendPrompt={(prompt) => void handleSendPrompt(prompt, false)}
+              onStopGeneration={handleStopGeneration}
+              onRetry={handleRetry}
+              onResetChat={handleResetChat}
               onSelectFile={(path) => {
                 const target = files.find((f) => f.filePath === path);
                 if (target) {

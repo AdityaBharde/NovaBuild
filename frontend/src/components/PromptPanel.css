@@ -1,559 +1,1008 @@
-/* Conversation UI: clean trace rows and conversational response styling */
-.nb-chat {
-  --chat-panel: #101522;
-  --chat-raised: #151e31;
-  --chat-border: #25304a;
-  --chat-text: #eef2ff;
-  --chat-muted: #99a4bd;
-  --chat-accent: #8b6bfa;
+/* ==========================================================================
+   NovaAI Chat Interface — Design System & Styles
+   Inspired by the restrained, focused craftsmanship of Linear, Cursor, & ChatGPT
+   ========================================================================== */
+
+.nova-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
   min-width: 0;
-  color: var(--chat-text);
-  background: var(--chat-panel);
+  background-color: var(--bg-app, #0f1015);
+  color: var(--color-text-primary, #f8f7ff);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  position: relative;
+  overflow: hidden;
 }
 
-.nb-chat-header {
-  min-height: 48px;
-  padding-block: 10px;
-  background: var(--chat-panel);
-  border-color: var(--chat-border);
+/* --------------------------------------------------------------------------
+   1. Header
+   -------------------------------------------------------------------------- */
+.nova-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 14px;
+  background-color: var(--bg-card, #161722);
+  border-bottom: 1px solid var(--border-subtle, #1e1f29);
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-.nb-chat-reset {
-  border-color: var(--chat-border);
+.nova-header-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.nova-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nova-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+.nova-header-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background-color: var(--color-accent-subtle, #241c38);
+  border: 1px solid var(--color-accent-border, #443468);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-accent-light, #c4b5fd);
+}
+
+.nova-header-sub {
+  font-size: 11px;
+  color: var(--color-text-muted, #71717f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nova-header-reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
   background: transparent;
+  color: var(--color-text-secondary, #a1a1aa);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.nb-chat-transcript {
+.nova-header-reset-btn:hover:not(:disabled) {
+  background-color: var(--bg-hover, #222333);
+  color: var(--color-text-primary, #f8f7ff);
+  border-color: var(--border-subtle, #1e1f29);
+}
+
+.nova-header-reset-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   2. Messages Transcript
+   -------------------------------------------------------------------------- */
+.nova-chat-transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  background: var(--chat-panel);
 }
 
-.nb-chat-transcript > * {
-  min-width: 0;
+/* --------------------------------------------------------------------------
+   3. Empty Conversation View
+   -------------------------------------------------------------------------- */
+.nova-empty-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: auto 0;
+  padding: 24px 16px;
+  text-align: center;
+  user-select: none;
 }
 
-.nb-chat-transcript > div:first-child {
-  margin-top: auto;
+.nova-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: var(--color-accent-subtle, #241c38);
+  border: 1px solid var(--color-accent-border, #443468);
+  color: var(--color-accent, #7950e8);
+  margin-bottom: 12px;
 }
 
-.nb-chat-user-bubble {
-  background: #1b2438;
-  border: 1px solid #2b3550;
-  color: #f5f6ff;
+.nova-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary, #f8f7ff);
+  margin-bottom: 6px;
+}
+
+.nova-empty-desc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-secondary, #a1a1aa);
+  max-width: 280px;
+  margin-bottom: 18px;
+}
+
+.nova-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.nova-suggestion-chip {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #262734);
+  background-color: var(--bg-card, #161722);
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: 11.5px;
+  text-align: left;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nova-suggestion-chip:hover {
+  background-color: var(--bg-hover, #222333);
+  border-color: var(--color-accent, #7950e8);
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+/* --------------------------------------------------------------------------
+   4. User Message
+   -------------------------------------------------------------------------- */
+.nova-user-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.nova-user-bubble {
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 12px 12px 3px 12px;
+  background-color: var(--bg-input, #1c1d29);
+  border: 1px solid var(--border-color, #262734);
+  color: var(--color-text-primary, #f8f7ff);
   box-shadow: none;
 }
 
-.nb-chat-assistant {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-.nb-chat-response {
-  padding: 1px 1px 2px;
-  color: #dfe5f5;
+.nova-user-text {
   font-size: 13px;
-  line-height: 1.72;
-  overflow-wrap: anywhere;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.nb-chat-response p + p {
-  margin-top: 0.7rem;
+.nova-msg-timestamp {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-muted, #71717f);
+  margin-top: 4px;
+  text-align: right;
 }
 
-.nb-chat-response h3,
-.nb-chat-response h4 {
-  margin-top: 0.8rem;
-  margin-bottom: 0.25rem;
-  color: #f5f6ff;
-  font-size: 13px;
-}
-
-.nb-chat-response pre {
-  max-width: 100%;
-  border: 1px solid var(--chat-border);
-  border-radius: 10px;
-  background: #0b101b;
-  color: #dfe5f5;
-}
-
-.nb-chat-thinking {
-  color: #b6a3ff;
-  font-style: italic;
-}
-
-.nb-chat-cursor {
-  background: var(--chat-accent);
-  border-radius: 2px;
-  animation: nb-chat-blink 1.05s steps(2, start) infinite;
-}
-
-@keyframes nb-chat-blink {
-  to { visibility: hidden; }
-}
-
-.nb-trace {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid rgba(63, 76, 108, 0.62);
-  border-radius: 12px;
-  background: rgba(18, 26, 43, 0.78);
-}
-
-.nb-trace-summary,
-.nb-trace-step-trigger {
+/* --------------------------------------------------------------------------
+   5. Assistant Message
+   -------------------------------------------------------------------------- */
+.nova-assistant-row {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
   width: 100%;
-  min-width: 0;
-  align-items: center;
-  gap: 9px;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  color: #c4cce0;
-}
-
-.nb-trace-summary {
-  min-height: 42px;
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 550;
-  cursor: pointer;
-}
-
-.nb-trace-summary:hover,
-.nb-trace-step-trigger:not(:disabled):hover {
-  background: rgba(139, 107, 250, 0.055);
-}
-
-.nb-trace-summary-title,
-.nb-trace-step-title {
-  flex: 1;
-  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
 
-.nb-trace-icon {
+.nova-assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nova-assistant-badge {
   display: inline-flex;
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent-light, #c4b5fd);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nova-assistant-name {
+  color: var(--color-text-primary, #f8f7ff);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Initial loading / thinking state */
+.nova-initial-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: var(--bg-card, #161722);
+  border: 1px solid var(--border-subtle, #1e1f29);
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: 12px;
+}
+
+/* Response Markdown */
+.nova-response-content {
+  color: var(--color-text-primary, #f8f7ff);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.nova-streaming-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  margin-left: 4px;
+  vertical-align: middle;
+  background-color: var(--color-accent, #7950e8);
+  border-radius: 1px;
+  animation: novaCursorBlink 0.9s infinite;
+}
+
+@keyframes novaCursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   6. Activity & Execution Steps Section
+   -------------------------------------------------------------------------- */
+.nova-activity {
+  border: 1px solid var(--border-subtle, #1e1f29);
+  border-radius: 8px;
+  background-color: var(--bg-card, #161722);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.nova-activity.is-streaming {
+  border-color: var(--color-accent-border, #443468);
+}
+
+.nova-activity.is-error {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.nova-activity-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nova-activity-summary:hover {
+  background-color: var(--bg-hover, #222333);
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+.nova-activity-status-icon {
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: #9a83ff;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-.nb-trace-icon svg {
-  width: 14px;
-  height: 14px;
-  stroke-width: 1.8;
+.nova-activity-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.nb-trace-summary.is-running .nb-trace-icon,
-.nb-trace-step.is-running .nb-trace-icon {
-  color: #a58fff;
+.nova-activity-chevron {
+  color: var(--color-text-muted, #71717f);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
-.nb-trace-summary.is-error .nb-trace-icon,
-.nb-trace-step.is-error .nb-trace-icon {
-  color: #fb858c;
-}
-
-.nb-trace-chevron {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  color: #75819c;
-  transition: transform 160ms ease;
-}
-
-.nb-trace-chevron.is-open {
+.nova-activity-chevron.is-open {
   transform: rotate(180deg);
 }
 
-.nb-trace-steps {
-  position: relative;
-  padding: 0 12px 10px 19px;
-  animation: nb-trace-reveal 180ms ease-out;
+.nova-activity-steps {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 12px 8px 12px;
+  border-top: 1px solid var(--border-subtle, #1e1f29);
+  gap: 2px;
 }
 
-.nb-trace-steps::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 15px;
-  left: 20px;
-  width: 1px;
-  background: linear-gradient(to bottom, rgba(139, 107, 250, 0.5), rgba(63, 76, 108, 0.16));
+.nova-step-item {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  font-size: 11.5px;
 }
 
-.nb-trace-step {
-  position: relative;
+.nova-step-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+}
+
+.nova-step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.nova-step-title {
+  flex: 1;
+  color: var(--color-text-secondary, #a1a1aa);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-step-item.is-running .nova-step-title {
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+.nova-step-item.is-error .nova-step-title {
+  color: var(--color-error, #f87171);
+}
+
+.nova-step-detail-toggle {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle, #1e1f29);
+  background-color: var(--bg-input, #1c1d29);
+  color: var(--color-text-muted, #71717f);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.nova-step-detail-toggle:hover {
+  color: var(--color-text-primary, #f8f7ff);
+  border-color: var(--border-color, #262734);
+}
+
+.nova-step-detail {
+  margin-top: 4px;
+  margin-left: 21px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background-color: var(--bg-app, #0f1015);
+  border: 1px solid var(--border-subtle, #1e1f29);
+}
+
+.nova-step-detail pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--color-text-secondary, #a1a1aa);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 140px;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   7. Changed Files Presentation
+   -------------------------------------------------------------------------- */
+.nova-file-changes {
+  border: 1px solid var(--border-subtle, #1e1f29);
+  border-radius: 8px;
+  background-color: var(--bg-card, #161722);
+  overflow: hidden;
+}
+
+.nova-file-changes-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--border-subtle, #1e1f29);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+.nova-file-changes-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.nova-file-change-item {
+  border-bottom: 1px solid var(--border-subtle, #1e1f29);
+}
+
+.nova-file-change-item:last-child {
+  border-bottom: none;
+}
+
+.nova-file-change-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  font-size: 11.5px;
+}
+
+.nova-file-badge {
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.nova-file-badge.is-created {
+  background-color: rgba(74, 222, 128, 0.12);
+  color: var(--color-success, #4ade80);
+}
+
+.nova-file-badge.is-updated {
+  background-color: var(--color-accent-subtle, #241c38);
+  color: var(--color-accent-light, #c4b5fd);
+}
+
+.nova-file-badge.is-deleted {
+  background-color: rgba(248, 113, 113, 0.12);
+  color: var(--color-error, #f87171);
+}
+
+.nova-file-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+.nova-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.nova-file-btn {
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color, #262734);
+  background-color: var(--bg-input, #1c1d29);
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nova-file-btn:hover {
+  background-color: var(--bg-hover, #222333);
+  color: var(--color-text-primary, #f8f7ff);
+  border-color: var(--border-hover, #3b2b5d);
+}
+
+.nova-file-btn.is-primary {
+  border-color: var(--color-accent-border, #443468);
+  color: var(--color-accent-light, #c4b5fd);
+}
+
+.nova-file-btn.is-primary:hover {
+  background-color: var(--color-accent-subtle, #241c38);
+  border-color: var(--color-accent, #7950e8);
+}
+
+.nova-file-diff-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border-subtle, #1e1f29);
+  background-color: var(--bg-app, #0f1015);
+}
+
+.nova-diff-column {
   min-width: 0;
 }
 
-.nb-trace-step-trigger {
-  min-height: 34px;
-  padding: 7px 0 7px 9px;
-  font-size: 11px;
-  line-height: 1.5;
-  cursor: default;
+.nova-diff-column + .nova-diff-column {
+  border-left: 1px solid var(--border-subtle, #1e1f29);
 }
 
-.nb-trace-step-trigger:not(:disabled) {
-  cursor: pointer;
-  border-radius: 6px;
+.nova-diff-label {
+  padding: 5px 9px;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #71717f);
+  border-bottom: 1px solid var(--border-subtle, #1e1f29);
 }
 
-.nb-trace-step-trigger:disabled {
-  opacity: 1;
-}
-
-.nb-trace-step-title {
-  color: #aeb8cf;
-}
-
-.nb-trace-step.is-running .nb-trace-step-title {
-  color: #e0d8ff;
-}
-
-.nb-trace-step.is-error .nb-trace-step-title {
-  color: #ff9ba2;
-}
-
-.nb-trace-detail {
-  margin: 0 0 8px 27px;
-  padding: 9px 10px;
-  border: 1px solid rgba(63, 76, 108, 0.5);
-  border-radius: 8px;
-  background: rgba(8, 13, 23, 0.65);
-  color: #aab5cd;
-  font-size: 11px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-
-.nb-trace-detail p {
-  white-space: pre-wrap;
-}
-
-.nb-trace-detail pre {
+.nova-diff-column pre {
+  padding: 8px 10px;
+  margin: 0;
   max-height: 180px;
   overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #a1a1aa);
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
 }
 
-.nb-chat-progress {
-  border: 1px solid rgba(63, 76, 108, 0.55);
-  background: rgba(21, 30, 49, 0.65);
+@media (max-width: 480px) {
+  .nova-file-diff-view {
+    grid-template-columns: 1fr;
+  }
+  .nova-diff-column + .nova-diff-column {
+    border-left: none;
+    border-top: 1px solid var(--border-subtle, #1e1f29);
+  }
 }
 
-.nb-chat-artifacts {
-  border-color: var(--chat-border);
-  background: rgba(21, 30, 49, 0.7);
+/* --------------------------------------------------------------------------
+   8. Markdown & Code Block Typography
+   -------------------------------------------------------------------------- */
+.nova-markdown {
+  font-size: 13px;
+  line-height: 1.68;
 }
 
-.nb-chat-empty-icon {
+.nova-h1 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary, #f8f7ff);
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.nova-h2 {
+  font-size: 14px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary, #f8f7ff);
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+
+.nova-h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #f8f7ff);
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+
+.nova-h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #a1a1aa);
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+
+.nova-p {
+  color: var(--color-text-primary, #f8f7ff);
+  margin: 0;
+}
+
+.nova-list-item {
   display: flex;
-  width: 42px;
-  height: 42px;
+  align-items: flex-start;
+  gap: 7px;
+  padding-left: 2px;
+}
+
+.nova-bullet {
+  color: var(--color-accent, #7950e8);
+  font-size: 14px;
+  line-height: 1.35;
+  user-select: none;
+}
+
+.nova-number {
+  color: var(--color-text-muted, #71717f);
+  font-size: 11px;
+  line-height: 1.6;
+  user-select: none;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.nova-list-content {
+  flex: 1;
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+.nova-blockquote {
+  border-left: 2px solid var(--color-accent-border, #443468);
+  padding-left: 10px;
+  margin: 4px 0;
+  color: var(--color-text-secondary, #a1a1aa);
+  font-style: italic;
+}
+
+.nova-inline-code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background-color: var(--bg-input, #1c1d29);
+  border: 1px solid var(--border-subtle, #1e1f29);
+  color: var(--color-accent-light, #c4b5fd);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.nova-strong {
+  font-weight: 600;
+  color: var(--color-text-primary, #f8f7ff);
+}
+
+.nova-em {
+  font-style: italic;
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+.nova-link {
+  color: var(--color-accent-light, #c4b5fd);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.nova-link:hover {
+  color: #fff;
+}
+
+/* Code Blocks */
+.nova-code-block {
+  border-radius: 8px;
+  background-color: #0b0c10;
+  border: 1px solid var(--border-color, #262734);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.nova-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background-color: var(--bg-card, #161722);
+  border-bottom: 1px solid var(--border-subtle, #1e1f29);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+.nova-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle, #1e1f29);
+  background-color: var(--bg-input, #1c1d29);
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nova-code-copy:hover {
+  background-color: var(--bg-hover, #222333);
+  color: var(--color-text-primary, #f8f7ff);
+  border-color: var(--border-color, #262734);
+}
+
+.nova-code-pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: #f1f0f7;
+  white-space: pre;
+}
+
+.nova-code-pre code {
+  display: block;
+  min-width: max-content;
+}
+
+/* Syntax Token Colors */
+.nova-code-keyword { color: #c4b5fd; font-weight: 500; }
+.nova-code-string { color: #86efac; }
+.nova-code-number { color: #fde047; }
+.nova-code-comment { color: var(--color-text-muted, #71717f); font-style: italic; }
+
+/* --------------------------------------------------------------------------
+   9. Empty & Error Response States
+   -------------------------------------------------------------------------- */
+.nova-empty-response-alert,
+.nova-error-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.nova-empty-response-alert {
+  border: 1px dashed var(--border-color, #262734);
+  background-color: var(--bg-card, #161722);
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+.nova-error-alert {
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  background-color: rgba(248, 113, 113, 0.06);
+  color: #fca5a5;
+}
+
+.nova-alert-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nova-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #262734);
+  background-color: var(--bg-input, #1c1d29);
+  color: var(--color-text-primary, #f8f7ff);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nova-retry-btn:hover {
+  background-color: var(--bg-hover, #222333);
+  border-color: var(--color-accent, #7950e8);
+}
+
+/* --------------------------------------------------------------------------
+   10. Prompt Composer
+   -------------------------------------------------------------------------- */
+.nova-composer-wrap {
+  padding: 10px 14px 14px 14px;
+  background-color: var(--bg-app, #0f1015);
+  border-top: 1px solid var(--border-subtle, #1e1f29);
+  flex-shrink: 0;
+}
+
+.nova-composer-form {
+  width: 100%;
+}
+
+.nova-composer-box {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #262734);
+  background-color: var(--bg-card, #161722);
+  padding: 8px 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nova-composer-box:focus-within {
+  border-color: var(--color-accent, #7950e8);
+  box-shadow: 0 0 0 1px var(--color-accent, #7950e8);
+}
+
+.nova-composer-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-primary, #f8f7ff);
+  min-height: 36px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.nova-composer-textarea::placeholder {
+  color: var(--color-text-muted, #71717f);
+}
+
+.nova-composer-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nova-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+  gap: 8px;
+}
+
+.nova-composer-hint {
+  font-size: 10px;
+  color: var(--color-text-muted, #71717f);
+  user-select: none;
+}
+
+.nova-kbd {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle, #1e1f29);
+  background-color: var(--bg-input, #1c1d29);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9.5px;
+}
+
+.nova-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.nova-send-btn {
+  display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
-  border: 1px solid rgba(139, 107, 250, 0.35);
-  border-radius: 14px;
-  background: rgba(139, 107, 250, 0.1);
-  color: #b6a3ff;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background-color: var(--color-accent, #7950e8);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.nb-chat-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 18px;
+.nova-send-btn:hover:not(:disabled) {
+  background-color: var(--color-accent-hover, #8965f0);
 }
 
-.nb-chat-suggestions button {
-  padding: 7px 10px;
-  border: 1px solid var(--chat-border);
-  border-radius: 999px;
-  background: rgba(21, 30, 49, 0.7);
-  color: #bac4dc;
+.nova-send-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.nova-stop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border-color, #262734);
+  background-color: var(--bg-hover, #222333);
+  color: var(--color-text-primary, #f8f7ff);
   font-size: 11px;
-  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.nb-chat-suggestions button:hover {
-  border-color: rgba(139, 107, 250, 0.6);
-  background: rgba(139, 107, 250, 0.1);
-  color: #f2eeff;
+.nova-stop-btn:hover {
+  background-color: var(--bg-input, #1c1d29);
+  border-color: var(--color-error, #f87171);
+  color: var(--color-error, #f87171);
 }
 
-.nb-chat-composer-wrap {
-  background: var(--chat-panel);
+/* --------------------------------------------------------------------------
+   11. Animations & Reduced Motion
+   -------------------------------------------------------------------------- */
+.nova-spinner {
+  animation: novaSpin 1s linear infinite;
 }
 
-.nb-chat-composer {
-  border-color: #2a3550;
-  background: #151d2e;
-  box-shadow: none;
-}
-
-.nb-chat-composer:focus-within {
-  border-color: rgba(139, 107, 250, 0.72);
-  box-shadow: 0 0 0 2px rgba(139, 107, 250, 0.09);
-}
-
-.nb-chat-textarea {
-  color: #f0f3ff;
-  font-size: 13px;
-}
-
-.nb-chat-textarea::placeholder {
-  color: #8793ad;
-}
-
-.nb-chat-add {
-  border-color: #2b3855;
-  background: #11192a;
-}
-
-.nb-chat-send {
-  box-shadow: none;
-}
-
-.nb-chat button:focus-visible {
-  outline: 2px solid rgba(166, 145, 255, 0.8);
-  outline-offset: 2px;
-}
-
-@keyframes nb-trace-reveal {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 560px) {
-  .nb-chat-header {
-    min-height: 60px;
-    padding-inline: 12px;
-  }
-
-  .nb-chat-transcript {
-    padding: 14px 12px;
-    gap: 16px;
-  }
-
-  .nb-chat-composer-wrap {
-    padding: 8px 10px 10px;
-  }
-
-  .nb-chat-textarea {
-    min-height: 58px;
-  }
+@keyframes novaSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nb-chat-cursor,
-  .nb-trace-steps {
+  .nova-spinner,
+  .nova-streaming-cursor {
     animation: none;
   }
-
-  .nb-trace-chevron {
+  .nova-activity-chevron {
     transition: none;
   }
 }
 
+/* Focus styles for keyboard navigation */
+.nova-chat button:focus-visible,
+.nova-chat textarea:focus-visible {
+  outline: 2px solid var(--color-accent, #7950e8);
+  outline-offset: 1px;
+}
 
-/* Code blocks and recovery controls */
-.nb-code-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border: 1px solid var(--chat-border);
-  border-radius: 6px;
-  color: #bac4dc;
-  background: rgba(11, 16, 27, 0.65);
-  font: 500 10px/1.3 ui-sans-serif, system-ui, sans-serif;
-  text-transform: none;
-  cursor: pointer;
+/* Custom Scrollbar for chat elements */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
-.nb-code-copy:hover { color: #f5f6ff; border-color: rgba(139, 107, 250, 0.6); }
-.nb-chat-stop { border-color: #3a4560; }
-.nb-chat-stop:hover { border-color: #8b6bfa; }
-.nb-chat-retry {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: fit-content;
-  padding: 6px 9px;
-  border: 1px solid var(--chat-border);
-  border-radius: 8px;
-  background: #151d2e;
-  color: #d6dcef;
-  font-size: 11px;
-}
-.nb-chat-retry:hover { border-color: #8b6bfa; color: #fff; }
-.nb-chat-response pre code { display: block; min-width: max-content; }
-.nb-chat-response pre { max-width: 100%; overflow-x: auto; }
-.nb-chat-textarea { overflow-y: auto; }
 
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-.nb-code-keyword { color: #c4a7ff; }
-.nb-code-string { color: #a7dca8; }
-.nb-code-number { color: #f2bd87; }
-.nb-code-comment { color: #7d8aa5; font-style: italic; }
-.nb-file-review {
-  overflow: hidden;
-  border: 1px solid var(--chat-border);
-  border-radius: 10px;
-  background: rgba(21, 30, 49, 0.62);
-}
-.nb-file-review-heading {
-  padding: 9px 11px;
-  border-bottom: 1px solid var(--chat-border);
-  color: #cbd3e8;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.nb-file-change + .nb-file-change { border-top: 1px solid rgba(63, 76, 108, .35); }
-.nb-file-change summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 11px;
-  cursor: pointer;
-  color: #dce3f5;
-  font-size: 11px;
-  list-style: none;
-}
-.nb-file-change summary::-webkit-details-marker { display: none; }
-.nb-file-change summary code { min-width: 0; overflow-wrap: anywhere; }
-.nb-file-action {
-  flex: 0 0 auto;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
-  padding: 2px 5px;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
-.nb-file-action.is-created { color: #b9d8ff; background: rgba(80, 145, 220, .14); }
-.nb-file-action.is-updated { color: #d2c5ff; background: rgba(139, 107, 250, .14); }
-.nb-file-action.is-deleted { color: #ffb4b8; background: rgba(220, 90, 100, .14); }
-.nb-file-diff { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid rgba(63, 76, 108, .35); }
-.nb-file-diff > div { min-width: 0; }
-.nb-file-diff > div + div { border-left: 1px solid rgba(63, 76, 108, .35); }
-.nb-file-diff-label { padding: 6px 8px; color: #8f9bb5; font-size: 9px; text-transform: uppercase; }
-.nb-file-diff pre { max-height: 220px; overflow: auto; padding: 8px; color: #cbd3e8; font: 10px/1.6 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.nb-file-open { margin: 0 8px 8px; padding: 5px 8px; border: 1px solid var(--chat-border); border-radius: 6px; color: #dcd4ff; font-size: 10px; }
-.nb-file-open:hover { border-color: #8b6bfa; }
-@media (max-width: 560px) { .nb-file-diff { grid-template-columns: 1fr; } .nb-file-diff > div + div { border-left: 0; border-top: 1px solid rgba(63, 76, 108, .35); } }
-
-
-/* Readability pass: prioritize conversation content over decorative surfaces. */
-.nb-chat {
-  --chat-panel: #111018;
-  --chat-raised: #17151f;
-  --chat-border: rgba(210, 199, 238, 0.12);
-  --chat-text: #f4f3f8;
-  --chat-muted: #a29daf;
-  --chat-accent: #a78bfa;
-  font-family: var(--nb-font-sans, Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
-  letter-spacing: -0.008em;
-}
-.nb-chat-response {
-  max-width: 76ch;
-  color: #e4e1ec;
-  font-size: 14px;
-  line-height: 1.78;
-  overflow-wrap: anywhere;
-}
-.nb-chat-response :is(h1, h2, h3, h4) {
-  color: #faf9fc;
-  font-weight: 620;
-  letter-spacing: -0.035em;
-  line-height: 1.3;
-}
-.nb-chat-response :is(ul, ol) { padding-left: 1.35rem; }
-.nb-chat-response li + li { margin-top: 0.28rem; }
-.nb-chat-response :not(pre) > code {
-  padding: 0.12em 0.35em;
-  border: 1px solid var(--chat-border);
-  border-radius: 4px;
-  background: rgba(255,255,255,0.035);
-  color: #d8c9ff;
-  font-family: var(--nb-font-mono, "SFMono-Regular", Consolas, monospace);
-  font-size: 0.9em;
-}
-.nb-chat pre {
-  max-width: 100%;
-  overflow: auto;
-  border: 1px solid var(--chat-border);
-  border-radius: 7px;
-  background: #0b0a10;
-}
-.nb-chat :is(button, textarea, input):focus-visible {
-  outline: 2px solid rgba(167, 139, 250, 0.72);
-  outline-offset: 2px;
-}
-@media (max-width: 640px) {
-  .nb-chat-response { max-width: 100%; font-size: 14px; }
-  .nb-chat-transcript { scrollbar-gutter: auto; }
 }
 
-
-/* One calm, explicit progress surface while the model has not started answering. */
-.nb-chat-progress {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  padding: 13px 14px;
-  border: 1px solid rgba(167, 139, 250, 0.22);
-  border-radius: 10px;
-  background: rgba(167, 139, 250, 0.045);
-}
-.nb-chat-progress-indicator {
-  position: relative;
-  flex: 0 0 8px;
-  width: 8px;
-  height: 8px;
-  margin-top: 5px;
-  border-radius: 50%;
-  background: #b6a0ff;
-}
-.nb-chat-progress-indicator::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border: 1px solid rgba(182, 160, 255, 0.45);
-  border-radius: 50%;
-  animation: nb-progress-pulse 1.8s ease-out infinite;
-}
-.nb-chat-progress-copy { display: grid; min-width: 0; gap: 3px; }
-.nb-chat-progress-label {
-  color: #b6a0ff;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-.nb-chat-progress-message {
-  color: #f0edf8;
-  font-size: 12px;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-}
-.nb-chat-progress-hint { color: #8f899e; font-size: 10px; line-height: 1.45; }
-@keyframes nb-progress-pulse {
-  0% { transform: scale(.7); opacity: .7; }
-  100% { transform: scale(1.7); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .nb-chat-progress-indicator::after { animation: none; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.22);
 }
