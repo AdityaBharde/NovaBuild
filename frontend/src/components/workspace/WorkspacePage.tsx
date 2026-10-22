@@ -22,7 +22,7 @@ import {
   CHAT_STREAM_URL,
 } from '../../api/client';
 import { CodeEditor } from '../CodeEditor';
-import { PromptPanel, sanitizeMessageText } from '../PromptPanel';
+import { PromptPanel, isEphemeralStatusTitle, looksLikeAssistantReply, recoverAssistantContent, sanitizeMessageText } from '../PromptPanel';
 import { PreviewWindow } from '../PreviewWindow';
 import { Modal } from '../common/Modal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -82,7 +82,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [showPreview, setShowPreview] = useState(false);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(248);
-  const [chatPanelWidth, setChatPanelWidth] = useState(360);
+  const [chatPanelWidth, setChatPanelWidth] = useState(440);
   const resizeTarget = useRef<'files' | 'chat' | null>(null);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
       if (resizeTarget.current === 'files') {
         setLeftPanelWidth(Math.min(360, Math.max(190, event.clientX - (document.querySelector('.novabuild-workspace')?.getBoundingClientRect().left || 0))));
       } else {
-        setChatPanelWidth(Math.min(520, Math.max(300, window.innerWidth - event.clientX)));
+        setChatPanelWidth(Math.min(640, Math.max(340, window.innerWidth - event.clientX)));
       }
     };
     const stopResize = () => { resizeTarget.current = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; };
@@ -435,6 +435,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
     const fileChanges: ChatFileChange[] = [];
     const createdFilesSet = new Set<string>();
     let messageContent = '';
+    let seededFromPlanning = false;
     let streamError: string | null = null;
     let lastFlushTime = 0;
 
@@ -538,21 +539,30 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
                       const sLower = s.toLowerCase();
                       if (sLower.startsWith('planning:')) {
-                        const existingPlan = executionSteps.find((x) => x.type === 'planning');
-                        const detailText = s.replace(/^planning:\s*/i, '');
-                        if (existingPlan) {
-                          existingPlan.detail = detailText;
-                          existingPlan.status = 'completed';
+                        const detailText = s.replace(/^planning:\s*/i, '').trim();
+                        if (looksLikeAssistantReply(detailText)) {
+                          if (!messageContent || seededFromPlanning) {
+                            messageContent = detailText;
+                            seededFromPlanning = true;
+                          }
                         } else {
-                          executionSteps.push({
-                            id: `plan-${Date.now()}`,
-                            type: 'planning',
-                            title: 'Planning architecture',
-                            detail: detailText,
-                            status: 'completed',
-                            timestamp: Date.now(),
-                          });
+                          const existingPlan = executionSteps.find((x) => x.type === 'planning');
+                          if (existingPlan) {
+                            existingPlan.detail = detailText;
+                            existingPlan.status = 'completed';
+                          } else {
+                            executionSteps.push({
+                              id: `plan-${Date.now()}`,
+                              type: 'planning',
+                              title: 'Planning architecture',
+                              detail: detailText || undefined,
+                              status: 'completed',
+                              timestamp: Date.now(),
+                            });
+                          }
                         }
+                      } else if (isEphemeralStatusTitle(s)) {
+                        // Keep the live status label, but don't persist "Thinking..." as a completed step.
                       } else if (sLower.startsWith('generating ')) {
                         const genPath = s.replace(/^generating\s*/i, '').replace(/\.\.\.*$/, '').trim();
                         setFiles((prev) => {
@@ -646,7 +656,12 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
                   case 'text_delta':
                     if (data.text) {
-                      messageContent += data.text;
+                      if (seededFromPlanning) {
+                        messageContent = data.text;
+                        seededFromPlanning = false;
+                      } else {
+                        messageContent += data.text;
+                      }
                       flushAssistantMessage(false);
                     }
                     break;
@@ -762,11 +777,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         });
 
         // Resolve final content and empty response state
-        const cleaned = sanitizeMessageText(messageContent);
-        let finalContent = messageContent;
+        const cleaned = recoverAssistantContent(messageContent, executionSteps) || sanitizeMessageText(messageContent);
+        let finalContent = cleaned || messageContent;
 
         if (streamError) {
-          finalContent = messageContent || `Generation error: ${streamError}`;
+          finalContent = cleaned || messageContent || `Generation error: ${streamError}`;
         } else if (!cleaned) {
           if (fileChanges.length > 0) {
             finalContent = `Successfully applied changes to ${fileChanges.length} file${fileChanges.length === 1 ? '' : 's'}. You can review the files above or open them directly in the editor.`;
@@ -775,7 +790,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           }
         }
 
-        const isUnsuccessful = Boolean(streamError || (!cleaned && fileChanges.length === 0));
+        const isUnsuccessful = Boolean(streamError);
 
         setMessages((prev) =>
           prev.map((m) =>

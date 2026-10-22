@@ -53,6 +53,58 @@ export function sanitizeMessageText(content: string): string {
   return text;
 }
 
+export function isEphemeralStatusTitle(title: string): boolean {
+  return /^(thinking\.?|analyzing request\.?|planning next steps\.?|processing request\.?|working\.?|connecting\.?|connected\.?)$/i.test(
+    title.trim()
+  );
+}
+
+export function looksLikeAssistantReply(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  if (/^(hello|hi\b|hey\b|sure[,.]?|i['’]m ready|i am ready)/i.test(t)) return true;
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length >= 8 && /[.!?']/.test(t)) return true;
+  return t.length > 140;
+}
+
+export function recoverAssistantContent(content: string, steps: ExecutionStep[] = []): string {
+  const primary = sanitizeMessageText(content);
+  if (primary) return primary;
+
+  for (const step of steps) {
+    if (!step.detail) continue;
+    const recovered = sanitizeMessageText(step.detail);
+    if (recovered && looksLikeAssistantReply(recovered)) return recovered;
+  }
+  return '';
+}
+
+export function activityStepsForDisplay(
+  steps: ExecutionStep[] = [],
+  displayContent: string
+): ExecutionStep[] {
+  return steps
+    .filter((step) => !isEphemeralStatusTitle(step.title))
+    .filter((step) => {
+      if (step.type === 'planning' && step.status !== 'running') {
+        const detail = step.detail ? sanitizeMessageText(step.detail) : '';
+        if (!detail) return false;
+        if (displayContent && (detail === displayContent || displayContent.includes(detail))) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .map((step) => {
+      const detail = step.detail ? sanitizeMessageText(step.detail) : '';
+      if (displayContent && detail && (detail === displayContent || displayContent.includes(detail))) {
+        return { ...step, detail: undefined };
+      }
+      return step;
+    });
+}
+
 // ---------------------------------------------------------------------------
 // 2. Minimal Inline SVG Icons (strictly zero Lucide dependency)
 // ---------------------------------------------------------------------------
@@ -438,26 +490,39 @@ function ActivitySection({
   steps,
   isStreaming,
   currentStatus,
+  hasReply,
 }: {
   steps: ExecutionStep[];
   isStreaming: boolean;
   currentStatus?: string | null;
+  hasReply?: boolean;
 }) {
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
   const runningStep = steps.find((s) => s.status === 'running');
   const failedSteps = steps.filter((s) => s.status === 'error');
   const hasFailed = failedSteps.length > 0;
+  const isExpanded = userToggled !== null ? userToggled : isStreaming && steps.length > 0;
 
-  // Auto-expand during streaming so user sees progress; auto-collapse once finished
-  const isExpanded = userToggled !== null ? userToggled : isStreaming;
+  if (steps.length === 0 && (!isStreaming || hasReply)) return null;
 
-  if (steps.length === 0 && !isStreaming) return null;
+  if (isStreaming && steps.length === 0) {
+    return (
+      <div className="nova-thinking" role="status" aria-live="polite">
+        <span className="nova-thinking-dots" aria-hidden="true">
+          <i /><i /><i />
+        </span>
+        <span>{currentStatus && !isEphemeralStatusTitle(currentStatus) ? currentStatus : 'Thinking'}</span>
+      </div>
+    );
+  }
 
   const headerTitle = isStreaming
-    ? (currentStatus || runningStep?.title || 'Processing request...')
+    ? (currentStatus || runningStep?.title || 'Working')
     : hasFailed
-    ? `Completed with ${failedSteps.length} failed ${failedSteps.length === 1 ? 'step' : 'steps'}`
-    : `Completed ${steps.length} ${steps.length === 1 ? 'step' : 'steps'}`;
+    ? `${failedSteps.length} ${failedSteps.length === 1 ? 'step' : 'steps'} failed`
+    : steps.length === 1
+    ? steps[0].title
+    : `${steps.length} steps`;
 
   return (
     <section className={`nova-activity ${isStreaming ? 'is-streaming' : ''} ${hasFailed ? 'is-error' : ''}`} aria-label="Execution activity">
@@ -478,7 +543,9 @@ function ActivitySection({
           )}
         </span>
         <span className="nova-activity-title">{headerTitle}</span>
-        <ChevronDownIcon className={`nova-activity-chevron ${isExpanded ? 'is-open' : ''}`} />
+        {steps.length > 0 && (
+          <ChevronDownIcon className={`nova-activity-chevron ${isExpanded ? 'is-open' : ''}`} />
+        )}
       </button>
 
       {isExpanded && steps.length > 0 && (
@@ -579,10 +646,9 @@ function FileChangesSection({
 // ---------------------------------------------------------------------------
 const UserMessageView = React.memo(({ message }: { message: ChatMessage }) => {
   return (
-    <div className="nova-user-row">
+    <div className="nova-msg nova-msg-user">
       <div className="nova-user-bubble">
         <div className="nova-user-text">{message.content}</div>
-        {message.timestamp && <span className="nova-msg-timestamp">{message.timestamp}</span>}
       </div>
     </div>
   );
@@ -603,88 +669,78 @@ const AssistantMessageView = React.memo(
     onRetry?: (message: ChatMessage) => void;
   }) => {
     const rawContent = message.content || '';
-    const displayContent = sanitizeMessageText(rawContent);
-    const steps = message.steps || [];
+    const displayContent = recoverAssistantContent(rawContent, message.steps);
+    const steps = activityStepsForDisplay(message.steps, displayContent);
     const fileChanges = message.fileChanges || [];
-    const isError = Boolean(message.error);
+    const isError = Boolean(message.error) && !displayContent;
     const hasFiles = fileChanges.length > 0;
-    const canRetry = isError && !isStreamingThis && Boolean(onRetry);
-
-    // Empty response case: stream finished, no conversational text, no file changes
-    const isEmptyResponse = !isStreamingThis && !displayContent && !hasFiles;
+    const canRetry = !isStreamingThis && Boolean(onRetry) && (isError || (!displayContent && !hasFiles));
+    const isEmptyResponse = !isStreamingThis && !displayContent && !hasFiles && !isError;
 
     return (
-      <div className="nova-assistant-row">
-        <div className="nova-assistant-header">
-          <div className="nova-assistant-badge">
-            <SparklesIcon className="text-accent" />
-            <span className="nova-assistant-name">NovaAI</span>
-          </div>
-          {message.timestamp && <span className="nova-msg-timestamp">{message.timestamp}</span>}
+      <div className="nova-msg nova-msg-assistant">
+        <div className="nova-assistant-avatar" aria-hidden="true">
+          <SparklesIcon />
         </div>
+        <div className="nova-assistant-body">
+          <ActivitySection
+            steps={steps}
+            isStreaming={isStreamingThis}
+            currentStatus={currentStatus}
+            hasReply={Boolean(displayContent)}
+          />
 
-        {/* 1. Execution steps / Activity */}
-        <ActivitySection
-          steps={steps}
-          isStreaming={isStreamingThis}
-          currentStatus={currentStatus}
-        />
+          <FileChangesSection changes={fileChanges} onSelectFile={onSelectFile} />
 
-        {/* 2. File changes */}
-        <FileChangesSection changes={fileChanges} onSelectFile={onSelectFile} />
-
-        {/* 3. Assistant text answer */}
-        {displayContent ? (
-          <div className="nova-response-content">
-            <MarkdownRenderer content={displayContent} />
-            {isStreamingThis && <span className="nova-streaming-cursor" aria-hidden="true" />}
-          </div>
-        ) : isStreamingThis && !steps.length ? (
-          <div className="nova-initial-loading" role="status" aria-live="polite">
-            <SpinnerIcon className="text-accent" />
-            <span>{currentStatus || 'Thinking...'}</span>
-          </div>
-        ) : null}
-
-        {/* 4. Empty response state */}
-        {isEmptyResponse && !isStreamingThis && (
-          <div className="nova-empty-response-alert" role="alert">
-            <div className="nova-alert-body">
-              <AlertCircleIcon className="text-amber-400" />
-              <span>NovaAI completed the request without generating a response.</span>
+          {displayContent ? (
+            <div className="nova-response-content">
+              <MarkdownRenderer content={displayContent} />
+              {isStreamingThis && <span className="nova-streaming-cursor" aria-hidden="true" />}
             </div>
-            {canRetry && (
-              <button
-                type="button"
-                className="nova-retry-btn"
-                onClick={() => onRetry?.(message)}
-              >
-                <RotateCwIcon />
-                <span>Retry request</span>
-              </button>
-            )}
-          </div>
-        )}
+          ) : null}
 
-        {/* 5. Error state with retry action */}
-        {isError && !isEmptyResponse && !isStreamingThis && (
-          <div className="nova-error-alert" role="alert">
-            <div className="nova-alert-body">
-              <AlertCircleIcon className="text-red-400" />
-              <span>{rawContent.startsWith('Generation failed:') || rawContent.startsWith('Failed to') ? rawContent : 'A problem occurred while completing this request.'}</span>
+          {isEmptyResponse && (
+            <div className="nova-empty-response-alert" role="alert">
+              <div className="nova-alert-body">
+                <AlertCircleIcon className="text-amber-400" />
+                <span>No reply was generated. Try sending the message again.</span>
+              </div>
+              {canRetry && (
+                <button
+                  type="button"
+                  className="nova-retry-btn"
+                  onClick={() => onRetry?.(message)}
+                >
+                  <RotateCwIcon />
+                  <span>Retry</span>
+                </button>
+              )}
             </div>
-            {canRetry && (
-              <button
-                type="button"
-                className="nova-retry-btn"
-                onClick={() => onRetry?.(message)}
-              >
-                <RotateCwIcon />
-                <span>Retry</span>
-              </button>
-            )}
-          </div>
-        )}
+          )}
+
+          {isError && !isEmptyResponse && !isStreamingThis && (
+            <div className="nova-error-alert" role="alert">
+              <div className="nova-alert-body">
+                <AlertCircleIcon className="text-red-400" />
+                <span>
+                  {rawContent.startsWith('Generation failed:') || rawContent.startsWith('Failed to')
+                    ? rawContent
+                    : 'A problem occurred while completing this request.'}
+                </span>
+              </div>
+              {canRetry && (
+                <button
+                  type="button"
+                  className="nova-retry-btn"
+                  onClick={() => onRetry?.(message)}
+                >
+                  <RotateCwIcon />
+                  <span>Retry</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -705,9 +761,9 @@ function EmptyChatView({ onSelectPrompt }: { onSelectPrompt: (text: string) => v
       <div className="nova-empty-icon">
         <SparklesIcon className="w-5 h-5 text-accent" />
       </div>
-      <h3 className="nova-empty-title">What would you like to build?</h3>
+      <h3 className="nova-empty-title">How can I help you today?</h3>
       <p className="nova-empty-desc">
-        Describe a feature, ask questions about your codebase, or instruct NovaAI to make changes.
+        Ask a question, describe a feature, or tell NovaAI what to change in this project.
       </p>
       <div className="nova-suggestions">
         {suggestions.map((s, idx) => (
@@ -747,7 +803,7 @@ function Composer({
     const textarea = textareaRef.current;
     if (!textarea) return;
     textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 140)}px`;
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
   }, [prompt]);
 
   const canSend = prompt.trim().length > 0 && !isStreaming;
@@ -776,44 +832,35 @@ function Composer({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask NovaAI to build or change code..."
+          placeholder="Message NovaAI..."
           aria-label="Message prompt for NovaAI"
           rows={1}
           disabled={isStreaming}
           className="nova-composer-textarea custom-scrollbar"
         />
-
-        <div className="nova-composer-footer">
-          <span className="nova-composer-hint">
-            <kbd className="nova-kbd">Enter</kbd> to send, <kbd className="nova-kbd">Shift+Enter</kbd> for newline
-          </span>
-
-          <div className="nova-composer-actions">
-            {isStreaming ? (
-              <button
-                type="button"
-                onClick={onStop}
-                className="nova-stop-btn"
-                title="Stop generation"
-                aria-label="Stop generation"
-              >
-                <StopIcon />
-                <span>Stop</span>
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!canSend}
-                className="nova-send-btn"
-                title="Send message"
-                aria-label="Send message"
-              >
-                <ArrowUpIcon />
-              </button>
-            )}
-          </div>
-        </div>
+        {isStreaming ? (
+          <button
+            type="button"
+            onClick={onStop}
+            className="nova-stop-btn"
+            title="Stop generation"
+            aria-label="Stop generation"
+          >
+            <StopIcon />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!canSend}
+            className="nova-send-btn"
+            title="Send message"
+            aria-label="Send message"
+          >
+            <ArrowUpIcon />
+          </button>
+        )}
       </div>
+      <span className="nova-composer-hint">Enter to send · Shift+Enter for a new line</span>
     </form>
   );
 }
@@ -854,30 +901,20 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
     <div className="nova-chat">
       {/* 1. Header */}
       <header className="nova-chat-header">
-        <div className="nova-header-info">
-          <div className="nova-header-title-row">
-            <span className="nova-header-title">NovaAI</span>
-            {isStreaming && (
-              <span className="nova-header-live-badge">
-                <SpinnerIcon className="w-3 h-3 text-accent" />
-                <span>Working</span>
-              </span>
-            )}
-          </div>
-          <span className="nova-header-sub">
-            {messages.length ? `${messages.length} messages` : 'Connected to workspace context'}
-          </span>
+        <div className="nova-header-title-row">
+          <SparklesIcon className="text-accent" />
+          <span className="nova-header-title">NovaAI</span>
+          {isStreaming && <span className="nova-header-live-badge">Working</span>}
         </div>
-
         <button
           type="button"
           onClick={onResetChat}
           disabled={isStreaming || messages.length === 0}
           className="nova-header-reset-btn"
-          title="Clear conversation"
-          aria-label="Clear conversation"
+          title="New chat"
+          aria-label="New chat"
         >
-          <RotateCwIcon />
+          New chat
         </button>
       </header>
 
