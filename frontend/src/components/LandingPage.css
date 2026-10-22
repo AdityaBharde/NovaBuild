@@ -75,11 +75,10 @@
 .landing-page .small-circle {
   width: min(260px, 52vw);
   height: min(260px, 52vw);
-  animation: small-circle-spin 6s linear infinite;
+  animation: small-circle-spin 9s linear infinite;
 }
 
-/* Orbit each soft gradient around the same center.
-   The circle centers travel visibly; the overall glow stays centered on the hero. */
+/* Keep both glow centers aligned while their gradients rotate in opposite directions. */
 @keyframes big-circle-spin {
   from { transform: translate(-50%, -50%) rotate(0deg); }
   to { transform: translate(-50%, -50%) rotate(360deg); }
@@ -91,10 +90,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-page .big-circle,
+  .landing-page .big-circle {
+    animation: big-circle-spin 9s linear infinite !important;
+  }
+
   .landing-page .small-circle {
-    transform: translate(-50%, -50%);
-    animation: none;
+    animation: small-circle-spin 9s linear infinite !important;
   }
 }
 
