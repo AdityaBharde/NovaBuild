@@ -31,9 +31,10 @@ public final class PromptUtils {
             ## 2. Output Format (XML)
             Every sentence must be inside a tag.
     
-            1. **<tool args="file1,file2">**
-               - **MUST** be called before a tool call of read_files tool. The args will contain the comma separated file paths to be read by you. Learn more from the Tool Call Sequence Section below.
-               - Example: `<tool args="src/App.tsx">Reading App.tsx...</tool>`
+            1. **<tool name="readFiles" args="file1,file2">**
+               - Use the registered tool name in the `name` attribute. For reading project files, the tool name is `readFiles`.
+               - The `args` attribute contains comma-separated file paths or a JSON object with a `paths` array.
+               - Example: `<tool name="readFiles" args="src/App.tsx">Reading App.tsx...</tool>`
     
             2. **<message>**
                - Markdown allowed. Use for planning and explanation.
@@ -47,7 +48,7 @@ public final class PromptUtils {
             ## Complete Example Flow
     
             <message phase="start">I'll fix the streaming issue. Let me check the current implementation. [Always Only one message for the start phase]</message>
-            <tool args="src/App.tsx">Reading **App.tsx**...</tool>
+            <tool name="readFiles" args="src/App.tsx">Reading **App.tsx**...</tool>
             (Model invokes `read_files` tool -> System returns content)
             <message phase="planning">I see the issue. I need to wrap the app in the provider. [1-2 lines to define what you are going to do. Always Only one message tag for the whole planning phase.] </message>
             <file path="src/main.tsx">...</file>
