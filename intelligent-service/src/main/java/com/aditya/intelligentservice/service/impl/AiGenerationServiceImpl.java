@@ -443,7 +443,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 || trimmed.equals("the implementation is complete.")
                 || trimmed.equals("completed")
                 || trimmed.equals("done.")
-                || trimmed.equals("done");
+                || trimmed.equals("done")
+                || trimmed.equals("request processed.")
+                || trimmed.equals("request processed");
     }
 
     private String buildAccurateFinalOutcome(
@@ -481,7 +483,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 ? streamedUserFacingText.trim()
                 : llmResponseParser.extractUserFacingMessage(fullRawText);
 
-        return !candidate.isBlank() ? candidate : "Request processed.";
+        return !candidate.isBlank() && !isGenericCompletionMessage(candidate)
+                ? candidate
+                : "I couldn't produce a useful response for this request. Please try again.";
     }
 
     private void extractAndPersistCodeBlocks(

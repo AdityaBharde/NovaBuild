@@ -786,11 +786,13 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           if (fileChanges.length > 0) {
             finalContent = `Successfully applied changes to ${fileChanges.length} file${fileChanges.length === 1 ? '' : 's'}. You can review the files above or open them directly in the editor.`;
           } else {
-            finalContent = '';
+            // Don't leave a completed assistant turn blank when the model returns only
+            // a generic placeholder such as "Request processed."
+            finalContent = "NovaAI couldn't produce a useful response. Please try again.";
           }
         }
 
-        const isUnsuccessful = Boolean(streamError);
+        const isUnsuccessful = Boolean(streamError) || (!cleaned && fileChanges.length === 0);
 
         setMessages((prev) =>
           prev.map((m) =>
