@@ -45,8 +45,12 @@ export function sanitizeMessageText(content: string): string {
 
   text = text.trim();
 
-  // 6. Treat backend fallback "Request processed." as empty so the UI can render meaningful states
-  if (text.toLowerCase() === 'request processed.' || text.toLowerCase() === 'request processed') {
+  // The backend/provider may emit this generic placeholder before a real final answer.
+  // Remove it from the beginning so a subsequent meaningful answer remains visible.
+  text = text.replace(/^(?:request processed\\.?\\s*)+/i, '').trim();
+
+  // Never present a generic placeholder as if it were the assistant's answer.
+  if (/^request processed\\.?$/i.test(text)) {
     return '';
   }
 
