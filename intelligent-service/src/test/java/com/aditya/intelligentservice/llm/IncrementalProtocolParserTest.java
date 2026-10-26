@@ -133,6 +133,41 @@ class IncrementalProtocolParserTest {
     }
 
     @Test
+    void testLegacyUnnamedToolArgsAreInterpretedAsReadFiles() {
+        List<String> tools = new ArrayList<>();
+        List<String> argsList = new ArrayList<>();
+
+        IncrementalProtocolParser parser = new IncrementalProtocolParser(new IncrementalProtocolParser.ProtocolEventListener() {
+            @Override
+            public void onStatus(String status) {}
+
+            @Override
+            public void onToolCall(String toolName, String rawArgs, String body) {
+                tools.add(toolName);
+                argsList.add(rawArgs);
+            }
+
+            @Override
+            public void onFileGenerating(String path) {}
+
+            @Override
+            public void onFileCompleted(String path, String content) {}
+
+            @Override
+            public void onTextDelta(String text) {}
+
+            @Override
+            public void onError(String error) {}
+        });
+
+        parser.processChunk("<tool args=\\"src/App.tsx,src/main.tsx,index.html\\">Reading project files</tool>");
+        parser.finish();
+
+        assertEquals(List.of("readFiles"), tools);
+        assertEquals(List.of("src/App.tsx,src/main.tsx,index.html"), argsList);
+    }
+
+    @Test
     void testSelfClosingToolAndSingleQuotes() {
         List<String> tools = new ArrayList<>();
         List<String> argsList = new ArrayList<>();
