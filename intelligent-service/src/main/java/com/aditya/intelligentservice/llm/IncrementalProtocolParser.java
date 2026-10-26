@@ -154,8 +154,14 @@ public class IncrementalProtocolParser {
                     listener.onFileGenerating(currentFilePath);
                 }
                 case "tool" -> {
-                    currentToolName = attrMap.getOrDefault("name", attrMap.getOrDefault("tool", attrMap.getOrDefault("args", ""))).trim();
+                    // Older prompts emitted <tool args="file1,file2"> for the read-files
+                    // operation without a name attribute. Do not mistake the argument list
+                    // for a tool name; normalize that legacy form to the actual registered tool.
+                    String declaredToolName = attrMap.getOrDefault("name", attrMap.getOrDefault("tool", "")).trim();
                     currentToolArgs = attrMap.getOrDefault("args", attrMap.getOrDefault("path", ""));
+                    currentToolName = declaredToolName.isEmpty() && !currentToolArgs.isBlank()
+                            ? "readFiles"
+                            : declaredToolName;
                     toolBodyBuffer.setLength(0);
                     if (tagString.endsWith("/>")) {
                         // Self-closing
