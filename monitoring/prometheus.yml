@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "config-service"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["config-service:8888"]
+
+  - job_name: "discovery-service"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["discovery-service:8761"]
+
+  - job_name: "api-gateway"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["api-gateway:9090"]
+
+  - job_name: "account-service"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["account-service:9090"]
+
+  - job_name: "project-service"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["project-service:9090"]
+
+  - job_name: "intelligent-service"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["intelligent-service:9090"]

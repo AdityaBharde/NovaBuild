@@ -30,6 +30,9 @@ spring:
           model: ${AI_MODEL:openrouter/free}
           temperature: 0
 
+jwt:
+  secret-key: ${JWT_SECRET}
+
 
 eureka:
   client:
@@ -40,11 +43,12 @@ eureka:
 
 
 management:
+  server:
+    port: 9090
   endpoints:
-    enabled-by-default: true
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       enabled: true

@@ -8,9 +8,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - novabuild-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: novabuild-redis
+    restart: unless-stopped
     networks:
       - novabuild-network
 
@@ -56,6 +63,9 @@ services:
 
   discovery-service:
     image: novabuild-discovery-service:latest
+    build:
+      context: .
+      dockerfile: discovery-service/Dockerfile
     container_name: novabuild-discovery-service
     restart: unless-stopped
     environment:
@@ -68,6 +78,9 @@ services:
 
   config-service:
     image: novabuild-config-service:latest
+    build:
+      context: .
+      dockerfile: config-service/Dockerfile
     container_name: novabuild-config-service
     restart: unless-stopped
     depends_on:
@@ -80,6 +93,9 @@ services:
 
   account-service:
     image: novabuild-account-service:latest
+    build:
+      context: .
+      dockerfile: account-service/Dockerfile
     container_name: novabuild-account-service
     restart: unless-stopped
     depends_on:
@@ -93,7 +109,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novabuild_account_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"
+      JWT_SECRET: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
       APP_FRONTEND_URL: ${APP_FRONTEND_URL}
       AI_BASE_URL: ${AI_BASE_URL}
       AI_API_KEY: ${AI_API_KEY}
@@ -104,11 +120,15 @@ services:
 
   project-service:
     image: novabuild-project-service:latest
+    build:
+      context: .
+      dockerfile: project-service/Dockerfile
     container_name: novabuild-project-service
     restart: unless-stopped
     depends_on:
       - postgres
       - kafka
+      - redis
       - minio
       - discovery-service
       - config-service
@@ -116,10 +136,11 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       CONFIG_SERVER_URI: http://config-service:8888
       EUREKA_URI: http://discovery-service:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/project_service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novabuild_project_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"
+      JWT_SECRET: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
+      SPRING_DATA_REDIS_HOST: redis
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       MINIO_URL: http://minio:9000
       MINIO_BUCKET: ${MINIO_BUCKET:-projects}
@@ -130,6 +151,9 @@ services:
 
   intelligent-service:
     image: novabuild-intelligent-service:latest
+    build:
+      context: .
+      dockerfile: intelligent-service/Dockerfile
     container_name: novabuild-intelligent-service
     restart: unless-stopped
     depends_on:
@@ -144,8 +168,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novabuild_intelligent_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"
-      SPRING_APPLICATION_JSON: '{"jwt":{"secret-key":"${JWT_SECRET}"}}'
+      JWT_SECRET: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AI_BASE_URL: https://openrouter.ai/api
       AI_API_KEY: ${AI_API_KEY}
@@ -155,6 +178,9 @@ services:
 
   api-gateway:
     image: novabuild-api-gateway:latest
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
     container_name: novabuild-api-gateway
     restart: unless-stopped
     depends_on:
@@ -168,7 +194,7 @@ services:
       CONFIG_SERVER_URI: http://config-service:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       EUREKA_URI: http://discovery-service:8761/eureka/
-      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"
+      JWT_SECRET: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
     networks:
       - novabuild-network
 
@@ -199,6 +225,40 @@ services:
     networks:
       - novabuild-network
 
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: novabuild-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - novabuild-network
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: novabuild-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - novabuild-network
+
+
 networks:
   novabuild-network:
     driver: bridge
@@ -208,3 +268,5 @@ volumes:
   minio_data:
   caddy_data:
   caddy_config:
+  prometheus_data:
+  grafana_data:

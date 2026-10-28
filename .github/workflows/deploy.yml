@@ -77,12 +77,12 @@ jobs:
 
           mvn -B -DskipTests package
 
-          docker build -t novabuild-discovery-service:latest ./discovery-service
-          docker build -t novabuild-config-service:latest ./config-service
-          docker build -t novabuild-account-service:latest ./account-service
-          docker build -t novabuild-project-service:latest ./project-service
-          docker build -t novabuild-intelligent-service:latest ./intelligent-service
-          docker build -t novabuild-api-gateway:latest ./api-gateway
+          docker build -f discovery-service/Dockerfile -t novabuild-discovery-service:latest .
+          docker build -f config-service/Dockerfile -t novabuild-config-service:latest .
+          docker build -f account-service/Dockerfile -t novabuild-account-service:latest .
+          docker build -f project-service/Dockerfile -t novabuild-project-service:latest .
+          docker build -f intelligent-service/Dockerfile -t novabuild-intelligent-service:latest .
+          docker build -f api-gateway/Dockerfile -t novabuild-api-gateway:latest .
 
           docker compose build frontend
 

@@ -5,7 +5,7 @@ WORKDIR /app
 RUN addgroup -S novabuild && adduser -S novabuild -G novabuild
 USER novabuild
 
-COPY target/*.jar app.jar
+COPY intelligent-service/target/*.jar app.jar
 
 EXPOSE 8083
 
