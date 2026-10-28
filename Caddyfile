@@ -1,8 +1,11 @@
 novabuild.adityabharde.dev {
     encode zstd gzip
 
-    # Keep streaming responses low-latency. Caddy preserves WebSocket upgrades.
     reverse_proxy frontend:80 {
         flush_interval -1
     }
+}
+
+http://localhost {
+    reverse_proxy novabuild-frontend:80
 }
